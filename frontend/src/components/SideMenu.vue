@@ -3,14 +3,14 @@
     :collapsed="collapsed"
     :collapsed-width="64"
     :collapsed-icon-size="22"
-    :value="currentPath"
+    :value="activeKey"
     :options="menuOptions"
     @update:value="handleMenuSelect"
   />
 </template>
 
 <script setup>
-import { computed, h } from 'vue'
+import { h, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 const props = defineProps({
@@ -19,8 +19,11 @@ const props = defineProps({
 
 const router = useRouter()
 const route = useRoute()
+const activeKey = ref(route.path)
 
-const currentPath = computed(() => route.path)
+watch(() => route.path, (newPath) => {
+  activeKey.value = newPath
+})
 
 const menuOptions = [
   {

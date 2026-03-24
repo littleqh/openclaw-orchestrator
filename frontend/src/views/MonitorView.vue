@@ -47,48 +47,79 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { NEmpty, NButton } from 'naive-ui'
 import OverviewPanel from '../components/OverviewPanel.vue'
 import SessionListPanel from '../components/SessionListPanel.vue'
 import AgentListPanel from '../components/AgentListPanel.vue'
 import ActivityPanel from '../components/ActivityPanel.vue'
-import { useSse } from '../composables/useSse.js'
+import { instanceApi, connectSse as createSse } from '../api/index.js'
 
-const props = defineProps({
-  instances: {
-    type: Array,
-    default: () => []
-  }
-})
-
+const instances = ref([])
 const selectedId = ref(null)
 const statusData = ref(null)
 const error = ref(null)
+const loading = ref(false)
 
-const selectedIdRef = computed(() => selectedId.value)
+let eventSource = null
 
-const { reconnect, connect } = useSse(selectedIdRef, (data) => {
-  statusData.value = data
-  error.value = null
-})
-
-watch(selectedIdRef, (newId) => {
-  if (newId) {
-    connect()
+async function loadInstances() {
+  loading.value = true
+  try {
+    const data = await instanceApi.list()
+    instances.value = Array.isArray(data) ? data : (data.result?.details || [])
+  } catch (e) {
+    console.error('Load instances error:', e)
+  } finally {
+    loading.value = false
   }
-}, { immediate: true })
+}
 
 function selectInstance(id) {
   if (selectedId.value === id) return
   selectedId.value = id
   statusData.value = null
+  openSse(id)
+}
+
+function openSse(instanceId) {
+  if (!instanceId) return
+
+  // Close existing connection
+  if (eventSource) {
+    eventSource.close()
+    eventSource = null
+  }
+
+  eventSource = createSse(
+    instanceId,
+    (data) => {
+      statusData.value = data
+      error.value = null
+    },
+    (e) => {
+      error.value = '连接中断'
+    }
+  )
 }
 
 function handleReconnect() {
   error.value = null
-  reconnect()
+  if (selectedId.value) {
+    openSse(selectedId.value)
+  }
 }
+
+onMounted(() => {
+  loadInstances()
+})
+
+onUnmounted(() => {
+  if (eventSource) {
+    eventSource.close()
+    eventSource = null
+  }
+})
 </script>
 
 <style scoped>

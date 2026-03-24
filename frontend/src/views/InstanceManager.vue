@@ -2,13 +2,37 @@
   <div class="manager">
     <div class="toolbar">
       <n-button type="primary" @click="showAdd = true">➕ 添加实例</n-button>
+      <n-button @click="loadInstances" :loading="loading">🔄 刷新</n-button>
     </div>
 
-    <n-table v-if="instances.length > 0" :columns="columns" :data="instances" bordered>
-      <template #empty>
-        <n-empty description="暂无实例" />
-      </template>
-    </n-table>
+    <div v-if="loading" class="loading">加载中...</div>
+
+    <div v-else-if="instances.length > 0">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>名称</th>
+            <th>URL</th>
+            <th>描述</th>
+            <th>创建时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="inst in instances" :key="inst.id">
+            <td>{{ inst.name }}</td>
+            <td>{{ inst.url }}</td>
+            <td>{{ inst.description || '-' }}</td>
+            <td>{{ new Date(inst.createdAt).toLocaleString('zh-CN') }}</td>
+            <td>
+              <n-button size="tiny" type="error" @click="handleDelete(inst.id)">删除</n-button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <n-empty v-else description="暂无实例" />
 
     <!-- 添加弹窗 -->
     <n-modal v-model:show="showAdd" preset="card" title="添加 Gateway 实例" style="width: 500px">
@@ -37,15 +61,14 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import { NButton, NTable, NEmpty, NModal, NForm, NFormItem, NInput, NInputGroup, useMessage } from 'naive-ui'
+import { ref, reactive, onMounted } from 'vue'
+import { NButton, NEmpty, NModal, NForm, NFormItem, NInput, useMessage } from 'naive-ui'
 import { instanceApi } from '../api/index.js'
 
-const props = defineProps({ instances: Array })
-const emit = defineEmits(['refresh'])
-
+const instances = ref([])
 const showAdd = ref(false)
 const saving = ref(false)
+const loading = ref(false)
 const message = useMessage()
 
 const form = reactive({
@@ -55,31 +78,26 @@ const form = reactive({
   description: ''
 })
 
-const columns = [
-  { title: '名称', key: 'name' },
-  { title: 'URL', key: 'url' },
-  { title: '描述', key: 'description', ellipsis: true },
-  { title: '创建时间', key: 'createdAt', render: (row) => row.createdAt ? new Date(row.createdAt).toLocaleString('zh-CN') : '-' },
-  {
-    title: '操作',
-    key: 'actions',
-    width: 120,
-    render: (row) => {
-      return h('div', { style: 'display:flex;gap:4px' }, [
-        h(NButton, {
-          size: 'tiny', type: 'error',
-          onClick: () => handleDelete(row.id)
-        }, { default: () => '删除' })
-      ])
-    }
+async function loadInstances() {
+  loading.value = true
+  try {
+    const data = await instanceApi.list()
+    instances.value = Array.isArray(data) ? data : (data.result?.details || [])
+  } catch (e) {
+    message.error('加载实例失败')
+  } finally {
+    loading.value = false
   }
-]
-
-import { h } from 'vue'
+}
 
 async function handleAdd() {
   if (!form.name || !form.url || !form.token) {
     message.warning('请填写完整')
+    return
+  }
+  // 检查重复
+  if (instances.value.some(i => i.url === form.url)) {
+    message.warning('该 URL 已存在')
     return
   }
   saving.value = true
@@ -88,7 +106,7 @@ async function handleAdd() {
     message.success('添加成功')
     showAdd.value = false
     Object.assign(form, { name: '', url: '', token: '', description: '' })
-    emit('refresh')
+    await loadInstances()
   } catch (e) {
     message.error('添加失败: ' + (e.response?.data?.message || e.message))
   } finally {
@@ -99,8 +117,12 @@ async function handleAdd() {
 async function handleDelete(id) {
   await instanceApi.delete(id)
   message.success('删除成功')
-  emit('refresh')
+  await loadInstances()
 }
+
+onMounted(() => {
+  loadInstances()
+})
 </script>
 
 <style scoped>
@@ -109,5 +131,33 @@ async function handleDelete(id) {
 }
 .toolbar {
   margin-bottom: 16px;
+  display: flex;
+  gap: 8px;
+}
+.loading {
+  padding: 20px;
+  text-align: center;
+  color: #666;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.data-table th,
+.data-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+.data-table th {
+  background: #f5f5f5;
+  font-weight: 600;
+  color: #333;
+}
+.data-table tr:hover {
+  background: #fafafa;
 }
 </style>

@@ -10,7 +10,9 @@
       "Bash(\"G:/tools/apache-maven-3.9.11/bin/mvn.cmd\" spring-boot:run)",
       "Bash(curl -s http://localhost:8080/api/instances)",
       "Bash(curl -s -N http://localhost:8080/api/sse/status/1)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(tasklist)",
+      "Bash(netstat -ano)"
     ]
   }
 }
