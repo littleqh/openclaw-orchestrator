@@ -635,6 +635,8 @@ git commit -m "feat(backend): add MonitorService with 15s polling and SSE broadc
 package com.openclaw.orchestrator.controller;
 
 import com.openclaw.orchestrator.dto.StatusData;
+import com.openclaw.orchestrator.entity.GatewayInstance;
+import com.openclaw.orchestrator.service.GatewayService;
 import com.openclaw.orchestrator.service.MonitorService;
 import com.openclaw.orchestrator.service.SseEmitterService;
 import lombok.RequiredArgsConstructor;
@@ -654,6 +656,7 @@ public class SseStatusController {
 
     private final SseEmitterService sseEmitterService;
     private final MonitorService monitorService;
+    private final GatewayService gatewayService;
 
     /**
      * SSE endpoint for real-time status updates.
@@ -663,10 +666,20 @@ public class SseStatusController {
     public SseEmitter subscribe(@PathVariable Long instanceId) {
         log.info("SSE subscription request for instance {}", instanceId);
 
-        // 1. 创建 SSE 连接
+        // 1. 验证实例存在
+        Optional<GatewayInstance> instance = gatewayService.listInstances().stream()
+                .filter(i -> i.getId().equals(instanceId))
+                .findFirst();
+        if (instance.isEmpty()) {
+            log.warn("Instance {} not found, rejecting SSE connection", instanceId);
+            throw new RuntimeException("实例不存在: " + instanceId);
+        }
+
+        // 2. 创建 SSE 连接
         SseEmitter emitter = sseEmitterService.subscribe(instanceId);
 
-        // 2. 立即推送缓存的最新状态（如果有）
+        // 3. 立即推送缓存的最新状态（如果有）
+        // 注意：如果发送失败，emitter 的错误处理会自动移除它
         Optional<StatusData> cached = monitorService.getCachedStatus(instanceId);
         if (cached.isPresent()) {
             try {
@@ -674,7 +687,8 @@ public class SseStatusController {
                         .name("status")
                         .data(cached.get()));
             } catch (Exception e) {
-                log.debug("Failed to send cached status on connect: {}", e.getMessage());
+                log.debug("Failed to send cached status on connect (emitter likely dead): {}", e.getMessage());
+                // emitter 已经在 sseEmitterService 的 onError 中被移除
             }
         }
 
@@ -871,13 +885,10 @@ git commit -m "feat(frontend): add useSse composable with exponential backoff re
 
 ---
 
-## Task 8: 前端 - 4 个 Panel 组件
+## Task 8: 前端 - OverviewPanel 组件
 
 **Files:**
 - Create: `frontend/src/components/OverviewPanel.vue`
-- Create: `frontend/src/components/SessionListPanel.vue`
-- Create: `frontend/src/components/AgentListPanel.vue`
-- Create: `frontend/src/components/ActivityPanel.vue`
 
 - [ ] **Step 1: 创建 OverviewPanel.vue**
 
@@ -1073,7 +1084,21 @@ function formatTime(timestamp) {
 </style>
 ```
 
-- [ ] **Step 3: 创建 AgentListPanel.vue**
+- [ ] **Step 2: Commit**
+
+```bash
+git add frontend/src/components/SessionListPanel.vue
+git commit -m "feat(frontend): add SessionListPanel component"
+```
+
+---
+
+## Task 10: 前端 - AgentListPanel 组件
+
+**Files:**
+- Create: `frontend/src/components/AgentListPanel.vue`
+
+- [ ] **Step 1: 创建 AgentListPanel.vue**
 
 ```vue
 <template>
@@ -1173,7 +1198,21 @@ defineProps({ data: Object })
 </style>
 ```
 
-- [ ] **Step 4: 创建 ActivityPanel.vue**
+- [ ] **Step 2: Commit**
+
+```bash
+git add frontend/src/components/AgentListPanel.vue
+git commit -m "feat(frontend): add AgentListPanel component"
+```
+
+---
+
+## Task 11: 前端 - ActivityPanel 组件
+
+**Files:**
+- Create: `frontend/src/components/ActivityPanel.vue`
+
+- [ ] **Step 1: 创建 ActivityPanel.vue**
 
 ```vue
 <template>
@@ -1276,16 +1315,16 @@ function formatTime(timestamp) {
 </style>
 ```
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 2: Commit**
 
 ```bash
-git add frontend/src/components/OverviewPanel.vue frontend/src/components/SessionListPanel.vue frontend/src/components/AgentListPanel.vue frontend/src/components/ActivityPanel.vue
-git commit -m "feat(frontend): add 4 panel components (Overview, Session, Agent, Activity)"
+git add frontend/src/components/ActivityPanel.vue
+git commit -m "feat(frontend): add ActivityPanel component"
 ```
 
 ---
 
-## Task 9: 前端 - MonitorView 主页面
+## Task 12: 前端 - MonitorView 主页面
 
 **Files:**
 - Create: `frontend/src/views/MonitorView.vue`
@@ -1504,7 +1543,7 @@ git commit -m "feat(frontend): add MonitorView with 4-panel layout and SSE integ
 
 ---
 
-## Task 10: 前端 - 添加 Monitor 标签页
+## Task 13: 前端 - 添加 Monitor 标签页
 
 **Files:**
 - Modify: `frontend/src/App.vue`
@@ -1544,7 +1583,7 @@ git commit -m "feat(frontend): add Monitor tab to main app navigation"
 
 ---
 
-## Task 11: 验证和测试
+## Task 14: 验证和测试
 
 - [ ] **Step 1: 后端启动测试**
 
@@ -1589,7 +1628,10 @@ git commit -m "feat: complete real-time agent session monitoring feature"
 5. **Task 5**: 启用 @EnableScheduling
 6. **Task 6**: 前端 API（connectSse）
 7. **Task 7**: useSse composable（重连逻辑）
-8. **Task 8**: 4 个 Panel 组件
-9. **Task 9**: MonitorView 主页面
-10. **Task 10**: App.vue 添加标签页
-11. **Task 11**: 验证和测试
+8. **Task 8**: OverviewPanel 组件
+9. **Task 9**: SessionListPanel 组件
+10. **Task 10**: AgentListPanel 组件
+11. **Task 11**: ActivityPanel 组件
+12. **Task 12**: MonitorView 主页面
+13. **Task 13**: App.vue 添加标签页
+14. **Task 14**: 验证和测试
