@@ -47,7 +47,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { NEmpty, NButton } from 'naive-ui'
 import OverviewPanel from '../components/OverviewPanel.vue'
 import SessionListPanel from '../components/SessionListPanel.vue'
@@ -68,10 +68,16 @@ const error = ref(null)
 
 const selectedIdRef = computed(() => selectedId.value)
 
-const { reconnect } = useSse(selectedIdRef, (data) => {
+const { reconnect, connect } = useSse(selectedIdRef, (data) => {
   statusData.value = data
   error.value = null
 })
+
+watch(selectedIdRef, (newId) => {
+  if (newId) {
+    connect()
+  }
+}, { immediate: true })
 
 function selectInstance(id) {
   if (selectedId.value === id) return

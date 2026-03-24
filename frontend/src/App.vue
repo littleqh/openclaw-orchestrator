@@ -21,6 +21,9 @@
               <n-tab-pane name="instances" tab="🖥️ 实例管理">
                 <InstanceManager :instances="instances" @refresh="loadInstances" />
               </n-tab-pane>
+              <n-tab-pane name="monitor" tab="📡 实时监控">
+                <MonitorView :instances="instances" />
+              </n-tab-pane>
             </n-tabs>
           </div>
         </n-notification-provider>
@@ -34,6 +37,7 @@ import { ref, onMounted } from 'vue'
 import { NConfigProvider, NMessageProvider, NDialogProvider, NNotificationProvider, NTabs, NTabPane, NButton } from 'naive-ui'
 import Dashboard from './views/Dashboard.vue'
 import InstanceManager from './views/InstanceManager.vue'
+import MonitorView from './views/MonitorView.vue'
 
 const activeTab = ref('dashboard')
 const instances = ref([])
