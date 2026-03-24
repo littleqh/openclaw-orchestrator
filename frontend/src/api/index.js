@@ -18,3 +18,25 @@ export const instanceApi = {
   invoke: (id, tool, args) =>
     api.post(`/instances/${id}/invoke`, { tool, args }).then(r => r.data)
 }
+
+// SSE 连接
+export function connectSse(instanceId, onMessage, onError) {
+  const url = `/api/sse/status/${instanceId}`
+  const eventSource = new EventSource(url)
+
+  eventSource.addEventListener('status', (event) => {
+    try {
+      const data = JSON.parse(event.data)
+      onMessage(data)
+    } catch (e) {
+      console.error('SSE parse error:', e)
+    }
+  })
+
+  eventSource.onerror = (e) => {
+    console.error('SSE error:', e)
+    onError && onError(e)
+  }
+
+  return eventSource
+}
