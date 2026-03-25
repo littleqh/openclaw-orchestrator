@@ -213,12 +213,16 @@ loadSkills()
 }
 .form {
   padding: 16px;
+  overflow-y: auto;
+  max-height: calc(100vh - 280px);
 }
 .skills-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 12px;
   padding: 16px;
+  overflow-y: auto;
+  max-height: calc(100vh - 280px);
 }
 .skill-item {
   padding: 12px;
