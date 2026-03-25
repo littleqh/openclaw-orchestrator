@@ -24,7 +24,7 @@ public class GlobalExceptionHandler {
             error.put("message", message.substring(9));
             return ResponseEntity.status(409).body(error);
         }
-        error.put("message", message);
+        error.put("message", message != null ? message : "Unknown error");
         return ResponseEntity.badRequest().body(error);
     }
 
