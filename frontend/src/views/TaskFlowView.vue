@@ -87,7 +87,12 @@ onMounted(async () => {
     // 键盘删除
     keyboard: { delete: true }
   })
-  console.log('[LF] initialized, version:', lf.version || 'unknown')
+
+  // LogicFlow 2.x 可能需要显式 render
+  lf.render()
+  console.log('[LF] initialized, render called')
+  console.log('[LF] container children after render:', container.children.length)
+  console.log('[LF] container innerHTML:', container.innerHTML.substring(0, 200))
 
   // 处理外部拖拽到画布 - 同时监听 document 和 container
   const handleDragOver = (e) => {
@@ -140,11 +145,8 @@ onMounted(async () => {
 
     // 检查 SVG 元素
     setTimeout(() => {
-      const svg = container.querySelector('svg')
-      const nodes = container.querySelectorAll('.lf-node')
-      console.log('[Drop] SVG exists:', !!svg, 'nodes found:', nodes.length)
-      const rects = container.querySelectorAll('rect')
-      console.log('[Drop] rect elements:', rects.length)
+      console.log('[Drop] container children:', container.children.length)
+      console.log('[Drop] container innerHTML:', container.innerHTML.substring(0, 500))
     }, 100)
   }
 
