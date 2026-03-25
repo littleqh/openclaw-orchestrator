@@ -11,6 +11,7 @@
       <WorkerDetailPanel
         :worker="selectedWorker"
         :loading="detailLoading"
+        :is-adding="selectedId === null"
         @saved="handleSaved"
         @deleted="handleDeleted"
       />

@@ -1,6 +1,6 @@
 <template>
   <div class="worker-detail-panel">
-    <div v-if="!worker && !loading" class="no-selection">
+    <div v-if="!isAdding && !worker && !loading" class="no-selection">
       <n-empty description="请选择一名员工或新增员工" />
     </div>
 
@@ -8,7 +8,7 @@
       <n-spin size="large" />
     </div>
 
-    <div v-else class="detail-content">
+    <div v-else-if="isAdding || worker" class="detail-content">
       <n-tabs type="line">
         <n-tab-pane name="basic" tab="基本信息">
           <n-form label-placement="top" class="form">
@@ -72,7 +72,8 @@ import { skillApi } from '../api/skillApi.js'
 
 const props = defineProps({
   worker: { type: Object, default: null },
-  loading: { type: Boolean, default: false }
+  loading: { type: Boolean, default: false },
+  isAdding: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['saved', 'deleted'])
