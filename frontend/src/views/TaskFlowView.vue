@@ -28,20 +28,32 @@ let deleteBtnEdgeId = null
 function showDeleteButton(edge) {
   hideDeleteButton()
 
-  const startX = edge.startPoint?.x || edge.sourceAnchor?.x || 0
-  const startY = edge.startPoint?.y || edge.sourceAnchor?.y || 0
-  const endX = edge.endPoint?.x || edge.targetAnchor?.x || 0
-  const endY = edge.endPoint?.y || edge.targetAnchor?.y || 0
-
+  // 计算连线中点坐标
+  const startX = edge.startPoint?.x || 0
+  const startY = edge.startPoint?.y || 0
+  const endX = edge.endPoint?.x || 0
+  const endY = edge.endPoint?.y || 0
   const centerX = (startX + endX) / 2
   const centerY = (startY + endY) / 2
+
+  // 转换为页面坐标
+  const point = lf.graphModel.getPointByClient({ x: centerX, y: centerY })
+  const pageX = point.domOverlayPosition?.x
+  const pageY = point.domOverlayPosition?.y
+
+  console.log('[DeleteBtn] center:', centerX, centerY, 'page:', pageX, pageY)
+
+  if (pageX === undefined || pageY === undefined) {
+    console.log('[DeleteBtn] Failed to get position')
+    return
+  }
 
   deleteBtnEl = document.createElement('div')
   deleteBtnEl.textContent = '×'
   deleteBtnEl.style.cssText = `
-    position: absolute;
-    left: ${centerX - 15}px;
-    top: ${centerY - 35}px;
+    position: fixed;
+    left: ${pageX - 15}px;
+    top: ${pageY - 35}px;
     width: 30px;
     height: 30px;
     background: #ef4444;
@@ -53,7 +65,7 @@ function showDeleteButton(edge) {
     cursor: pointer;
     font-size: 18px;
     font-weight: bold;
-    z-index: 1000;
+    z-index: 10000;
   `
   deleteBtnEl.onclick = () => {
     if (deleteBtnEdgeId) {
@@ -62,7 +74,7 @@ function showDeleteButton(edge) {
       selectedEdgeId = null
     }
   }
-  container.appendChild(deleteBtnEl)
+  document.body.appendChild(deleteBtnEl)
   deleteBtnEdgeId = edge.id
 }
 
