@@ -174,11 +174,6 @@ onMounted(async () => {
     const edge = ev.data || ev
     if (!edge || !edge.id) return
 
-    // 清除之前的选中
-    if (selectedEdgeId) {
-      lf.setElementStateById(selectedEdgeId, 0)
-    }
-
     selectedEdgeId = edge.id
 
     // 显示删除按钮
@@ -189,12 +184,6 @@ onMounted(async () => {
   lf.on('node:click', (ev) => {
     const node = ev.data || ev
     if (!node || !node.id) return
-
-    // 清除之前的选中
-    if (selectedEdgeId) {
-      lf.setElementStateById(selectedEdgeId, 0)
-      selectedEdgeId = null
-    }
 
     selectedEdgeId = 'node_' + node.id
   })
