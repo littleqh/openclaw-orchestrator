@@ -73,12 +73,13 @@ onMounted(async () => {
   // 获取容器尺寸
   const container = document.getElementById('lf-canvas')
   const rect = container.getBoundingClientRect()
+  console.log('[LF] container size:', rect.width, rect.height)
 
   // 初始化 LogicFlow
   lf = new LogicFlow({
     container: container,
-    width: rect.width,
-    height: rect.height,
+    width: rect.width || 800,
+    height: rect.height || 600,
     grid: true,
     background: { color: '#f5f5f5' },
     // 启用多选
@@ -114,7 +115,7 @@ onMounted(async () => {
       x: e.clientX,
       y: e.clientY
     })
-    console.log('[Drop] LF point:', point)
+    console.log('[Drop] LF point:', JSON.stringify(point))
     // 使用 canvasOverlayPosition 作为 LogicFlow 内部坐标
     const x = point.canvasOverlayPosition?.x || point.domOverlayPosition?.x
     const y = point.canvasOverlayPosition?.y || point.domOverlayPosition?.y
@@ -125,9 +126,9 @@ onMounted(async () => {
       id: `node_${worker.id}_${Date.now()}`,
       x: x,
       y: y,
-      text: worker.name,
       width: 160,
       height: 60,
+      text: worker.name,
       properties: {
         workerId: worker.id,
         nickname: worker.nickname,
@@ -136,6 +137,15 @@ onMounted(async () => {
     })
     console.log('[Drop] Node added')
     console.log('[Drop] Graph data:', JSON.stringify(lf.getGraphData()))
+
+    // 检查 SVG 元素
+    setTimeout(() => {
+      const svg = container.querySelector('svg')
+      const nodes = container.querySelectorAll('.lf-node')
+      console.log('[Drop] SVG exists:', !!svg, 'nodes found:', nodes.length)
+      const rects = container.querySelectorAll('rect')
+      console.log('[Drop] rect elements:', rects.length)
+    }, 100)
   }
 
   // 监听 container 本身
