@@ -159,19 +159,19 @@ onMounted(async () => {
   // 注册自定义员工节点
   registerEmployeeNode()
 
-  // 处理外部拖拽到画布
-  document.addEventListener('dragover', (e) => {
-    console.log('[DragOver] types:', e.dataTransfer.types, 'json:', e.dataTransfer.types.includes('application/json'))
-    // 如果有来自我们应用的数据类型，允许drop
+  // 处理外部拖拽到画布 - 同时监听 document 和 container
+  const handleDragOver = (e) => {
+    console.log('[DragOver] target:', e.target.tagName, e.target.className, 'types:', e.dataTransfer.types)
     if (e.dataTransfer.types.includes('application/json')) {
       e.preventDefault()
     }
-  })
+  }
 
-  document.addEventListener('drop', (e) => {
-    console.log('[Drop] data:', e.dataTransfer.getData('application/json') || 'empty', 'clientX/Y:', e.clientX, e.clientY)
+  const handleDrop = (e) => {
+    console.log('[Drop] target:', e.target.tagName, e.target.className)
     e.preventDefault()
     const data = e.dataTransfer.getData('application/json')
+    console.log('[Drop] raw data:', data)
     if (!data) {
       console.log('[Drop] No data found')
       return
@@ -196,7 +196,17 @@ onMounted(async () => {
       avatar: worker.avatar
     })
     console.log('[Drop] Node added')
-  })
+  }
+
+  // 监听 container 本身
+  container.addEventListener('dragover', handleDragOver)
+  container.addEventListener('drop', handleDrop)
+  container.addEventListener('dragenter', (e) => console.log('[DragEnter] target:', e.target.tagName))
+  container.addEventListener('dragleave', (e) => console.log('[DragLeave] target:', e.target.tagName))
+
+  // 同时监听 document 级别
+  document.addEventListener('dragover', handleDragOver)
+  document.addEventListener('drop', handleDrop)
 
   // 处理边点击选中
   lf.on('edge:click', ({ edge }) => {
