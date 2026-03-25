@@ -109,11 +109,15 @@ onMounted(async () => {
     const worker = JSON.parse(data)
     console.log('[Drop] worker:', worker)
 
-    // 计算画布上的坐标
-    const containerRect = container.getBoundingClientRect()
-    const x = e.clientX - containerRect.left
-    const y = e.clientY - containerRect.top
-    console.log('[Drop] canvas x/y:', x, y)
+    // 计算画布上的坐标 - 转换为 LogicFlow 坐标
+    const point = lf.graphModel.getPointByClient({
+      x: e.clientX,
+      y: e.clientY
+    })
+    console.log('[Drop] LF point:', point)
+    const x = point.domOverlayPosition?.x || point.canvasPosition?.x || e.clientX
+    const y = point.domOverlayPosition?.y || point.canvasPosition?.y || e.clientY
+    console.log('[Drop] final x/y:', x, y)
 
     lf.addNode({
       type: 'rect',
