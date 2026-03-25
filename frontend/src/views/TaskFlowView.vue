@@ -12,7 +12,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import LogicFlow from '@logicflow/core'
-import { h, Rect, Text, Circle } from '@logicflow/core'
 import '@logicflow/core/es/style/index.css'
 import WorkerDragPanel from '../components/WorkerDragPanel.vue'
 import { workerApi } from '../api/workerApi.js'
@@ -21,77 +20,6 @@ const workers = ref([])
 
 let lf = null
 let selectedEdgeId = null
-
-// 注册自定义员工节点 - 显示图标+名字
-function registerEmployeeNode() {
-  lf.register('employee-node', ({ model }) => {
-    const data = model.getData()
-    const name = data.text?.value || data.name || '?'
-    const nickname = data.nickname || ''
-
-    // 节点尺寸
-    const width = 160
-    const height = 70
-
-    // 头像圆形背景
-    const avatarBg = new Circle({
-      x: -50,
-      y: 0,
-      r: 22,
-      fill: '#6366f1',
-      stroke: 'none'
-    })
-
-    // 头像文字（姓名的第一个字）
-    const avatarText = new Text({
-      x: -50,
-      y: 5,
-      text: name.charAt(0),
-      fill: '#fff',
-      fontSize: 14,
-      textAnchor: 'middle'
-    })
-
-    // 名字文字
-    const nameText = new Text({
-      x: -15,
-      y: -5,
-      text: name,
-      fill: '#333',
-      fontSize: 14,
-      fontWeight: 'bold'
-    })
-
-    // 昵称文字
-    const nicknameText = new Text({
-      x: -15,
-      y: 15,
-      text: nickname,
-      fill: '#888',
-      fontSize: 12
-    })
-
-    // 背景矩形
-    const bg = new Rect({
-      x: -width / 2,
-      y: -height / 2,
-      width: width,
-      height: height,
-      fill: '#fff',
-      stroke: '#6366f1',
-      strokeWidth: 2,
-      radius: 10
-    })
-
-    return h('g', { class: 'employee-node' }, [
-      bg,
-      avatarBg,
-      avatarText,
-      nameText,
-      nicknameText
-    ])
-  })
-}
 
 // 显示删除按钮
 function showDeleteButton(edge) {
@@ -177,9 +105,6 @@ onMounted(async () => {
     }
   })
 
-  // 注册自定义员工节点
-  registerEmployeeNode()
-
   // LogicFlow 2.x 需要显式 render
   lf.render()
 
@@ -206,14 +131,18 @@ onMounted(async () => {
     const y = point.canvasOverlayPosition?.y || point.domOverlayPosition?.y
 
     lf.addNode({
-      type: 'employee-node',
+      type: 'rect',
       id: `node_${worker.id}_${Date.now()}`,
       x: x,
       y: y,
-      text: worker.name,
-      name: worker.name,
-      nickname: worker.nickname,
-      avatar: worker.avatar
+      width: 160,
+      height: 60,
+      text: '🦞 ' + worker.name,
+      properties: {
+        workerId: worker.id,
+        nickname: worker.nickname,
+        avatar: worker.avatar
+      }
     })
   }
 
