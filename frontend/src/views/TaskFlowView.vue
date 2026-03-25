@@ -12,7 +12,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import LogicFlow from '@logicflow/core'
-import { h, Rect, Text, Circle } from '@logicflow/core'
 import '@logicflow/core/es/style/index.css'
 import WorkerDragPanel from '../components/WorkerDragPanel.vue'
 import { workerApi } from '../api/workerApi.js'
@@ -21,74 +20,6 @@ const workers = ref([])
 
 let lf = null
 let selectedEdgeId = null
-
-// 注册自定义员工节点
-function registerEmployeeNode() {
-  lf.register('employee-node', ({ model, graphModel }) => {
-    const { x, y } = model
-    const data = model.getData()
-
-    const nodeData = {
-      id: data.id,
-      name: data.name || '',
-      nickname: data.nickname || '',
-      avatar: data.avatar || ''
-    }
-
-    // 头像背景
-    const avatarBg = new Circle({
-      x: -55,
-      y: 0,
-      r: 18,
-      fill: '#6366f1',
-      stroke: 'none'
-    })
-
-    // 头像文字
-    const avatarText = new Text({
-      x: -55,
-      y: 4,
-      text: nodeData.name?.charAt(0) || '?',
-      fill: '#fff',
-      fontSize: 12,
-      textAnchor: 'middle'
-    })
-
-    // 姓名
-    const nameText = new Text({
-      x: -25,
-      y: -8,
-      text: nodeData.name,
-      fill: '#333',
-      fontSize: 14,
-      fontWeight: 'bold'
-    })
-
-    // 昵称
-    const nicknameText = new Text({
-      x: -25,
-      y: 10,
-      text: nodeData.nickname || '',
-      fill: '#888',
-      fontSize: 12
-    })
-
-    const group = new Rect({
-      x: x - 80,
-      y: y - 30,
-      width: 160,
-      height: 60,
-      fill: '#fff',
-      stroke: '#6366f1',
-      strokeWidth: 2,
-      radius: 8
-    })
-
-    return h('g', { class: 'employee-node' }, [
-      group, avatarBg, avatarText, nameText, nicknameText
-    ])
-  })
-}
 
 // 显示删除按钮
 function showDeleteButton(edge) {
@@ -156,9 +87,6 @@ onMounted(async () => {
     keyboard: { delete: true }
   })
 
-  // 注册自定义员工节点
-  registerEmployeeNode()
-
   // 处理外部拖拽到画布 - 同时监听 document 和 container
   const handleDragOver = (e) => {
     console.log('[DragOver] target:', e.target.tagName, e.target.className, 'types:', e.dataTransfer.types)
@@ -186,14 +114,18 @@ onMounted(async () => {
     console.log('[Drop] canvas x/y:', x, y)
 
     lf.addNode({
-      type: 'employee-node',
+      type: 'rect',
       id: `node_${worker.id}_${Date.now()}`,
       x: x,
       y: y,
       text: worker.name,
-      name: worker.name,
-      nickname: worker.nickname,
-      avatar: worker.avatar
+      width: 160,
+      height: 60,
+      properties: {
+        workerId: worker.id,
+        nickname: worker.nickname,
+        avatar: worker.avatar
+      }
     })
     console.log('[Drop] Node added')
   }
@@ -264,5 +196,12 @@ onMounted(async () => {
   position: absolute;
   top: 0;
   left: 0;
+}
+
+/* 节点样式 */
+:deep(.lf-canvas-node) {
+  background: #fff !important;
+  border: 2px solid #6366f1 !important;
+  border-radius: 8px !important;
 }
 </style>
