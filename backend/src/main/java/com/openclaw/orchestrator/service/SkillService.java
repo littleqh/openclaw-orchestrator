@@ -21,7 +21,7 @@ public class SkillService {
 
     public Skill getSkill(Long id) {
         return skillRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("技能不存在"));
+                .orElseThrow(() -> new RuntimeException("NOT_FOUND:技能不存在"));
     }
 
     @Transactional

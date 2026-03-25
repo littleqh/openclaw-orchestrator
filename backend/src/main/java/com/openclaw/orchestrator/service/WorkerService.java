@@ -79,7 +79,6 @@ public class WorkerService {
             Set<Skill> skills = new HashSet<>(skillRepository.findAllById(skillIds));
             worker.setSkills(skills);
         }
-        workerRepository.save(worker);
     }
 
     private Worker.WorkerStatus parseStatus(String status) {
