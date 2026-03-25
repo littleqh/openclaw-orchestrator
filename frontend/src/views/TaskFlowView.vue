@@ -115,8 +115,9 @@ onMounted(async () => {
       y: e.clientY
     })
     console.log('[Drop] LF point:', point)
-    const x = point.domOverlayPosition?.x || point.canvasPosition?.x || e.clientX
-    const y = point.domOverlayPosition?.y || point.canvasPosition?.y || e.clientY
+    // 使用 canvasOverlayPosition 作为 LogicFlow 内部坐标
+    const x = point.canvasOverlayPosition?.x || point.domOverlayPosition?.x
+    const y = point.canvasOverlayPosition?.y || point.domOverlayPosition?.y
     console.log('[Drop] final x/y:', x, y)
 
     lf.addNode({
