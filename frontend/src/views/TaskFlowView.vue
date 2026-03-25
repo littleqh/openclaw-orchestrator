@@ -173,8 +173,12 @@ onMounted(async () => {
 
   // 处理边点击选中
   lf.on('edge:click', (data) => {
+    console.log('[Edge click] data:', data)
     const edge = data.edge || data
-    if (!edge || !edge.id) return
+    if (!edge || !edge.id) {
+      console.log('[Edge click] no edge')
+      return
+    }
 
     // 清除之前的选中
     if (selectedEdgeId) {
@@ -190,6 +194,7 @@ onMounted(async () => {
 
   // 处理节点点击选中
   lf.on('node:click', (data) => {
+    console.log('[Node click] data:', data)
     const node = data.node || data
     if (!node || !node.id) return
 
@@ -201,6 +206,11 @@ onMounted(async () => {
 
     selectedEdgeId = 'node_' + node.id
     lf.setSelected(node.id)
+  })
+
+  // 监听所有点击事件用于调试
+  lf.on('click', (data) => {
+    console.log('[Canvas click] data:', data)
   })
 
   // 点击空白处清除选中
