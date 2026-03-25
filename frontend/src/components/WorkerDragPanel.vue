@@ -26,13 +26,12 @@ const props = defineProps({
 })
 
 function handleDragStart(e, worker) {
-  console.log('[DragStart] worker:', worker)
-  // 确保是普通对象而不是 Proxy
-  const plainWorker = JSON.parse(JSON.stringify(worker))
-  console.log('[DragStart] plainWorker:', plainWorker)
   e.dataTransfer.setData('application/json', JSON.stringify({
     type: 'worker',
-    ...plainWorker
+    id: worker.id,
+    name: worker.name,
+    nickname: worker.nickname,
+    avatar: worker.avatar
   }))
   e.dataTransfer.effectAllowed = 'copy'
 }

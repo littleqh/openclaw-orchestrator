@@ -73,7 +73,6 @@ onMounted(async () => {
   // 获取容器尺寸
   const container = document.getElementById('lf-canvas')
   const rect = container.getBoundingClientRect()
-  console.log('[LF] container size:', rect.width, rect.height)
 
   // 初始化 LogicFlow
   lf = new LogicFlow({
@@ -85,46 +84,50 @@ onMounted(async () => {
     // 启用多选
     multipleSelect: true,
     // 键盘删除
-    keyboard: { delete: true }
+    keyboard: { delete: true },
+    // 主题配置
+    style: {
+      rect: {
+        fill: '#fff',
+        stroke: '#6366f1',
+        strokeWidth: 2,
+        radius: 10
+      },
+      text: {
+        color: '#333',
+        fontSize: 14
+      },
+      nodeText: {
+        color: '#333',
+        fontSize: 14
+      }
+    }
   })
 
-  // LogicFlow 2.x 可能需要显式 render
+  // LogicFlow 2.x 需要显式 render
   lf.render()
-  console.log('[LF] initialized, render called')
-  console.log('[LF] container children after render:', container.children.length)
-  console.log('[LF] container innerHTML:', container.innerHTML.substring(0, 200))
 
-  // 处理外部拖拽到画布 - 同时监听 document 和 container
+  // 处理外部拖拽到画布
   const handleDragOver = (e) => {
-    console.log('[DragOver] target:', e.target.tagName, e.target.className, 'types:', e.dataTransfer.types)
     if (e.dataTransfer.types.includes('application/json')) {
       e.preventDefault()
     }
   }
 
   const handleDrop = (e) => {
-    console.log('[Drop] target:', e.target.tagName, e.target.className)
     e.preventDefault()
     const data = e.dataTransfer.getData('application/json')
-    console.log('[Drop] raw data:', data)
-    if (!data) {
-      console.log('[Drop] No data found')
-      return
-    }
+    if (!data) return
 
     const worker = JSON.parse(data)
-    console.log('[Drop] worker:', worker)
 
-    // 计算画布上的坐标 - 转换为 LogicFlow 坐标
+    // 计算画布上的坐标
     const point = lf.graphModel.getPointByClient({
       x: e.clientX,
       y: e.clientY
     })
-    console.log('[Drop] LF point:', JSON.stringify(point))
-    // 使用 canvasOverlayPosition 作为 LogicFlow 内部坐标
     const x = point.canvasOverlayPosition?.x || point.domOverlayPosition?.x
     const y = point.canvasOverlayPosition?.y || point.domOverlayPosition?.y
-    console.log('[Drop] final x/y:', x, y)
 
     lf.addNode({
       type: 'rect',
@@ -140,14 +143,6 @@ onMounted(async () => {
         avatar: worker.avatar
       }
     })
-    console.log('[Drop] Node added')
-    console.log('[Drop] Graph data:', JSON.stringify(lf.getGraphData()))
-
-    // 检查 SVG 元素
-    setTimeout(() => {
-      console.log('[Drop] container children:', container.children.length)
-      console.log('[Drop] container innerHTML:', container.innerHTML.substring(0, 500))
-    }, 100)
   }
 
   // 监听 container 本身
@@ -218,10 +213,18 @@ onMounted(async () => {
   left: 0;
 }
 
-/* 节点样式 */
-:deep(.lf-canvas-node) {
-  background: #fff !important;
-  border: 2px solid #6366f1 !important;
-  border-radius: 8px !important;
+/* 节点样式 - 美化矩形节点 */
+:deep(.lf-node rect) {
+  fill: #fff !important;
+  stroke: #6366f1 !important;
+  stroke-width: 2 !important;
+  rx: 10 !important;
+  ry: 10 !important;
+}
+:deep(.lf-node text) {
+  fill: #333 !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  text-anchor: middle !important;
 }
 </style>
