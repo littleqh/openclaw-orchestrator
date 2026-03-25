@@ -28,18 +28,20 @@ let deleteBtnEdgeId = null
 function showDeleteButton(edge) {
   hideDeleteButton()
 
-  const centerX = (edge.startPoint.x + edge.endPoint.x) / 2
-  const centerY = (edge.startPoint.y + edge.endPoint.y) / 2
+  const startX = edge.startPoint?.x || edge.sourceAnchor?.x || 0
+  const startY = edge.startPoint?.y || edge.sourceAnchor?.y || 0
+  const endX = edge.endPoint?.x || edge.targetAnchor?.x || 0
+  const endY = edge.endPoint?.y || edge.targetAnchor?.y || 0
 
-  // 转换为页面坐标
-  const point = lf.graphModel.getPointByClient({ x: centerX, y: centerY })
+  const centerX = (startX + endX) / 2
+  const centerY = (startY + endY) / 2
 
   deleteBtnEl = document.createElement('div')
   deleteBtnEl.textContent = '×'
   deleteBtnEl.style.cssText = `
     position: absolute;
-    left: ${point.domOverlayPosition.x - 15}px;
-    top: ${point.domOverlayPosition.y - 35}px;
+    left: ${centerX - 15}px;
+    top: ${centerY - 35}px;
     width: 30px;
     height: 30px;
     background: #ef4444;
@@ -158,7 +160,10 @@ onMounted(async () => {
   container.addEventListener('dragleave', (e) => e.preventDefault())
 
   // 处理边点击选中
-  lf.on('edge:click', ({ edge }) => {
+  lf.on('edge:click', (data) => {
+    const edge = data.edge || data
+    if (!edge || !edge.id) return
+
     // 清除之前的选中
     if (selectedEdgeId) {
       lf.setElementStateById(selectedEdgeId, 0)
@@ -171,13 +176,47 @@ onMounted(async () => {
     showDeleteButton(edge)
   })
 
-  // 点击空白处清除选中
-  lf.on('blank:click', () => {
+  // 处理节点点击选中
+  lf.on('node:click', (data) => {
+    const node = data.node || data
+    if (!node || !node.id) return
+
+    // 清除之前的选中
     if (selectedEdgeId) {
       lf.setElementStateById(selectedEdgeId, 0)
       selectedEdgeId = null
     }
+
+    selectedEdgeId = 'node_' + node.id
+    lf.setSelected(node.id)
+  })
+
+  // 点击空白处清除选中
+  lf.on('blank:click', () => {
+    if (selectedEdgeId) {
+      if (selectedEdgeId.startsWith('node_')) {
+        const nodeId = selectedEdgeId.replace('node_', '')
+        lf.setElementStateById(selectedEdgeId, 0)
+      } else {
+        lf.setElementStateById(selectedEdgeId, 0)
+      }
+      selectedEdgeId = null
+    }
     hideDeleteButton()
+  })
+
+  // 键盘删除
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Delete' && selectedEdgeId) {
+      if (selectedEdgeId.startsWith('node_')) {
+        const nodeId = selectedEdgeId.replace('node_', '')
+        lf.deleteNode(nodeId)
+      } else {
+        lf.deleteEdge(selectedEdgeId)
+      }
+      selectedEdgeId = null
+      hideDeleteButton()
+    }
   })
 })
 </script>
