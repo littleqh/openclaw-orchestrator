@@ -29,10 +29,10 @@ function showDeleteButton(edge) {
   hideDeleteButton()
 
   // 计算连线中点坐标
-  const startX = edge.startPoint?.x || 0
-  const startY = edge.startPoint?.y || 0
-  const endX = edge.endPoint?.x || 0
-  const endY = edge.endPoint?.y || 0
+  const startX = edge.properties?.startPoint?.x || edge.startPoint?.x || 0
+  const startY = edge.properties?.startPoint?.y || edge.startPoint?.y || 0
+  const endX = edge.properties?.endPoint?.x || edge.endPoint?.x || 0
+  const endY = edge.properties?.endPoint?.y || edge.endPoint?.y || 0
   const centerX = (startX + endX) / 2
   const centerY = (startY + endY) / 2
 
@@ -40,8 +40,6 @@ function showDeleteButton(edge) {
   const point = lf.graphModel.getPointByClient({ x: centerX, y: centerY })
   const pageX = point.domOverlayPosition?.x
   const pageY = point.domOverlayPosition?.y
-
-  console.log('[DeleteBtn] center:', centerX, centerY, 'page:', pageX, pageY)
 
   if (pageX === undefined || pageY === undefined) {
     console.log('[DeleteBtn] Failed to get position')
@@ -172,13 +170,9 @@ onMounted(async () => {
   container.addEventListener('dragleave', (e) => e.preventDefault())
 
   // 处理边点击选中
-  lf.on('edge:click', (data) => {
-    console.log('[Edge click] data:', data)
-    const edge = data.edge || data
-    if (!edge || !edge.id) {
-      console.log('[Edge click] no edge')
-      return
-    }
+  lf.on('edge:click', (ev) => {
+    const edge = ev.data || ev
+    if (!edge || !edge.id) return
 
     // 清除之前的选中
     if (selectedEdgeId) {
@@ -193,9 +187,8 @@ onMounted(async () => {
   })
 
   // 处理节点点击选中
-  lf.on('node:click', (data) => {
-    console.log('[Node click] data:', data)
-    const node = data.node || data
+  lf.on('node:click', (ev) => {
+    const node = ev.data || ev
     if (!node || !node.id) return
 
     // 清除之前的选中
@@ -206,11 +199,6 @@ onMounted(async () => {
 
     selectedEdgeId = 'node_' + node.id
     lf.setSelected(node.id)
-  })
-
-  // 监听所有点击事件用于调试
-  lf.on('click', (data) => {
-    console.log('[Canvas click] data:', data)
   })
 
   // 点击空白处清除选中
