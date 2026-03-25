@@ -36,4 +36,12 @@ public class GlobalExceptionHandler {
         }
         return ResponseEntity.badRequest().body(error);
     }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, String>> handleAll(Exception e) {
+        Map<String, String> error = new HashMap<>();
+        error.put("message", e.getMessage());
+        error.put("type", e.getClass().getSimpleName());
+        return ResponseEntity.status(500).body(error);
+    }
 }

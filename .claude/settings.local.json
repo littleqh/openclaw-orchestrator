@@ -12,7 +12,15 @@
       "Bash(curl -s -N http://localhost:8080/api/sse/status/1)",
       "Bash(curl:*)",
       "Bash(tasklist)",
-      "Bash(netstat -ano)"
+      "Bash(netstat -ano)",
+      "Bash(mvn compile:*)",
+      "WebSearch",
+      "WebFetch(domain:antv-x6.en.ohdev.com)",
+      "WebFetch(domain:x6.antv.antgroup.com)",
+      "Bash(find D:/code/openclaw-orchestrator/frontend/node_modules/@logicflow/core -name *.css)",
+      "Bash(./mvnw build:*)",
+      "Bash(ls -la D:/code/openclaw-orchestrator/backend/mvn*)",
+      "Bash(where java:*)"
     ]
   }
 }

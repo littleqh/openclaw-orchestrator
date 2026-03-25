@@ -1,5 +1,6 @@
 package com.openclaw.orchestrator.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -8,10 +9,12 @@ import java.util.Set;
 
 @Entity
 @Table(name = "workers")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(exclude = {"skills"})
 public class Worker {
 
     @Id
@@ -51,6 +54,7 @@ public class Worker {
         inverseJoinColumns = @JoinColumn(name = "skill_id")
     )
     @Builder.Default
+    @JsonIgnoreProperties("workers")
     private Set<Skill> skills = new HashSet<>();
 
     @Column(name = "created_at")
