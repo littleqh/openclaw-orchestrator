@@ -15,7 +15,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntime(RuntimeException e) {
         Map<String, String> error = new HashMap<>();
-        error.put("message", e.getMessage());
+        String message = e.getMessage();
+        if (message != null && message.startsWith("NOT_FOUND:")) {
+            error.put("message", message.substring(10));
+            return ResponseEntity.status(404).body(error);
+        }
+        if (message != null && message.startsWith("CONFLICT:")) {
+            error.put("message", message.substring(9));
+            return ResponseEntity.status(409).body(error);
+        }
+        error.put("message", message);
         return ResponseEntity.badRequest().body(error);
     }
 
