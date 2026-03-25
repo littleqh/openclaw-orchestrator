@@ -86,6 +86,7 @@ onMounted(async () => {
     // 键盘删除
     keyboard: { delete: true }
   })
+  console.log('[LF] initialized, version:', lf.version || 'unknown')
 
   // 处理外部拖拽到画布 - 同时监听 document 和 container
   const handleDragOver = (e) => {
@@ -129,6 +130,7 @@ onMounted(async () => {
       }
     })
     console.log('[Drop] Node added')
+    console.log('[Drop] Graph data:', JSON.stringify(lf.getGraphData()))
   }
 
   // 监听 container 本身
