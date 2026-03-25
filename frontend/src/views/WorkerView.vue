@@ -2,6 +2,7 @@
   <div class="worker-view">
     <div class="sidebar">
       <WorkerListPanel
+        :workers="workers"
         :selected-id="selectedId"
         @select="handleSelect"
         @add="handleAdd"
