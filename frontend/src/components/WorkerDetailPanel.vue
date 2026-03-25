@@ -67,7 +67,8 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { NTabs, NTabPane, NForm, NFormItem, NInput, NSelect, NButton, NEmpty, NSpin, useMessage } from 'naive-ui'
-import { workerApi, skillApi } from '../api/workerApi.js'
+import { workerApi } from '../api/workerApi.js'
+import { skillApi } from '../api/skillApi.js'
 
 const props = defineProps({
   worker: { type: Object, default: null },

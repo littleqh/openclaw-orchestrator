@@ -40,6 +40,11 @@ const menuOptions = [
     label: '实时监控',
     key: '/monitor',
     icon: () => h('span', '📡')
+  },
+  {
+    label: '数字员工',
+    key: '/workers',
+    icon: () => h('span', '👤')
   }
 ]
 
