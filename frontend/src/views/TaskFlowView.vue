@@ -180,7 +180,6 @@ onMounted(async () => {
     }
 
     selectedEdgeId = edge.id
-    lf.setSelected(edge.id)
 
     // 显示删除按钮
     showDeleteButton(edge)
@@ -198,20 +197,11 @@ onMounted(async () => {
     }
 
     selectedEdgeId = 'node_' + node.id
-    lf.setSelected(node.id)
   })
 
   // 点击空白处清除选中
   lf.on('blank:click', () => {
-    if (selectedEdgeId) {
-      if (selectedEdgeId.startsWith('node_')) {
-        const nodeId = selectedEdgeId.replace('node_', '')
-        lf.setElementStateById(selectedEdgeId, 0)
-      } else {
-        lf.setElementStateById(selectedEdgeId, 0)
-      }
-      selectedEdgeId = null
-    }
+    selectedEdgeId = null
     hideDeleteButton()
   })
 
