@@ -45,6 +45,11 @@ const menuOptions = [
     label: '数字员工',
     key: '/workers',
     icon: () => h('span', '👤')
+  },
+  {
+    label: '任务连线',
+    key: '/task-flow',
+    icon: () => h('span', '🔗')
   }
 ]
 

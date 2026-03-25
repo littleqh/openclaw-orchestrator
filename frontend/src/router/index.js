@@ -3,13 +3,15 @@ import Dashboard from '../views/Dashboard.vue'
 import InstanceManager from '../views/InstanceManager.vue'
 import MonitorView from '../views/MonitorView.vue'
 import WorkerView from '../views/WorkerView.vue'
+import TaskFlowView from '../views/TaskFlowView.vue'
 
 const routes = [
   { path: '/', redirect: '/dashboard' },
   { path: '/dashboard', name: 'Dashboard', component: Dashboard },
   { path: '/instances', name: 'Instances', component: InstanceManager },
   { path: '/monitor', name: 'Monitor', component: MonitorView },
-  { path: '/workers', name: 'Workers', component: WorkerView }
+  { path: '/workers', name: 'Workers', component: WorkerView },
+  { path: '/task-flow', name: 'TaskFlow', component: TaskFlowView }
 ]
 
 const router = createRouter({
