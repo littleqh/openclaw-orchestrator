@@ -107,10 +107,11 @@ onMounted(async () => {
 
     const worker = JSON.parse(data)
     console.log('[Drop] worker:', worker)
-    const { x, y } = lf.graphModel.getPointByClient({
-      x: e.clientX,
-      y: e.clientY
-    })
+
+    // 计算画布上的坐标
+    const containerRect = container.getBoundingClientRect()
+    const x = e.clientX - containerRect.left
+    const y = e.clientY - containerRect.top
     console.log('[Drop] canvas x/y:', x, y)
 
     lf.addNode({
