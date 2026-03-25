@@ -159,8 +159,15 @@ onMounted(async () => {
   // 注册自定义员工节点
   registerEmployeeNode()
 
-  // 处理 drop 事件
-  container.addEventListener('drop', (e) => {
+  // 处理外部拖拽到画布
+  document.addEventListener('dragover', (e) => {
+    // 如果有来自我们应用的数据类型，允许drop
+    if (e.dataTransfer.types.includes('application/json')) {
+      e.preventDefault()
+    }
+  })
+
+  document.addEventListener('drop', (e) => {
     e.preventDefault()
     const data = e.dataTransfer.getData('application/json')
     if (!data) return
@@ -181,11 +188,6 @@ onMounted(async () => {
       nickname: worker.nickname,
       avatar: worker.avatar
     })
-  })
-
-  container.addEventListener('dragover', (e) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'copy'
   })
 
   // 处理边点击选中
