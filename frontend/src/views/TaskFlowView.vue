@@ -161,6 +161,7 @@ onMounted(async () => {
 
   // 处理外部拖拽到画布
   document.addEventListener('dragover', (e) => {
+    console.log('[DragOver] types:', e.dataTransfer.types, 'json:', e.dataTransfer.types.includes('application/json'))
     // 如果有来自我们应用的数据类型，允许drop
     if (e.dataTransfer.types.includes('application/json')) {
       e.preventDefault()
@@ -168,15 +169,21 @@ onMounted(async () => {
   })
 
   document.addEventListener('drop', (e) => {
+    console.log('[Drop] data:', e.dataTransfer.getData('application/json') || 'empty', 'clientX/Y:', e.clientX, e.clientY)
     e.preventDefault()
     const data = e.dataTransfer.getData('application/json')
-    if (!data) return
+    if (!data) {
+      console.log('[Drop] No data found')
+      return
+    }
 
     const worker = JSON.parse(data)
+    console.log('[Drop] worker:', worker)
     const { x, y } = lf.graphModel.getPointByClient({
       x: e.clientX,
       y: e.clientY
     })
+    console.log('[Drop] canvas x/y:', x, y)
 
     lf.addNode({
       type: 'employee-node',
@@ -188,6 +195,7 @@ onMounted(async () => {
       nickname: worker.nickname,
       avatar: worker.avatar
     })
+    console.log('[Drop] Node added')
   })
 
   // 处理边点击选中

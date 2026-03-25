@@ -26,6 +26,7 @@ const props = defineProps({
 })
 
 function handleDragStart(e, worker) {
+  console.log('[DragStart] worker:', worker)
   e.dataTransfer.setData('application/json', JSON.stringify({
     type: 'worker',
     id: worker.id,
