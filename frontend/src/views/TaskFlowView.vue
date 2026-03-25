@@ -21,49 +21,54 @@ const workers = ref([])
 let lf = null
 let selectedEdgeId = null
 
-// 显示删除按钮
+// 显示删除按钮 - 使用 absolute 定位的 DOM 元素
+let deleteBtnEl = null
+let deleteBtnEdgeId = null
+
 function showDeleteButton(edge) {
   hideDeleteButton()
 
   const centerX = (edge.startPoint.x + edge.endPoint.x) / 2
   const centerY = (edge.startPoint.y + edge.endPoint.y) / 2
 
-  lf.addElement({
-    type: 'html',
-    id: 'edge-delete-btn',
-    x: centerX,
-    y: centerY - 20,
-    width: 30,
-    height: 30
-  })
+  // 转换为页面坐标
+  const point = lf.graphModel.getPointByClient({ x: centerX, y: centerY })
 
-  // 使用定时器等待元素渲染
-  setTimeout(() => {
-    const btn = document.querySelector('#edge-delete-btn')
-    if (btn) {
-      btn.innerHTML = '<div class="delete-btn" onclick="window.__deleteEdge()">×</div>'
-      btn.style.cssText = 'width:30px;height:30px;background:#ef4444;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;font-weight:bold;'
-    }
-  }, 50)
-}
-
-// 隐藏删除按钮
-function hideDeleteButton() {
-  try {
-    lf.deleteElement('edge-delete-btn')
-  } catch (e) {
-    // ignore if not exists
-  }
-}
-
-// 全局删除函数
-if (typeof window.__deleteEdge !== 'function') {
-  window.__deleteEdge = () => {
-    if (selectedEdgeId) {
-      lf.deleteEdge(selectedEdgeId)
-      selectedEdgeId = null
+  deleteBtnEl = document.createElement('div')
+  deleteBtnEl.textContent = '×'
+  deleteBtnEl.style.cssText = `
+    position: absolute;
+    left: ${point.domOverlayPosition.x - 15}px;
+    top: ${point.domOverlayPosition.y - 35}px;
+    width: 30px;
+    height: 30px;
+    background: #ef4444;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    z-index: 1000;
+  `
+  deleteBtnEl.onclick = () => {
+    if (deleteBtnEdgeId) {
+      lf.deleteEdge(deleteBtnEdgeId)
       hideDeleteButton()
+      selectedEdgeId = null
     }
+  }
+  container.appendChild(deleteBtnEl)
+  deleteBtnEdgeId = edge.id
+}
+
+function hideDeleteButton() {
+  if (deleteBtnEl) {
+    deleteBtnEl.remove()
+    deleteBtnEl = null
+    deleteBtnEdgeId = null
   }
 }
 
@@ -223,5 +228,10 @@ onMounted(async () => {
   font-size: 14px !important;
   font-weight: 500 !important;
   text-anchor: middle !important;
+}
+
+/* 画布容器需要 relative 定位以容纳删除按钮 */
+.canvas-container {
+  position: relative;
 }
 </style>
