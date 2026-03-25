@@ -49,9 +49,10 @@ function showDeleteButton(edge) {
 
 // 隐藏删除按钮
 function hideDeleteButton() {
-  const existing = lf.graphModel.getElementById('edge-delete-btn')
-  if (existing) {
+  try {
     lf.deleteElement('edge-delete-btn')
+  } catch (e) {
+    // ignore if not exists
   }
 }
 
@@ -145,15 +146,9 @@ onMounted(async () => {
     })
   }
 
-  // 监听 container 本身
+  // 监听 container 拖拽事件
   container.addEventListener('dragover', handleDragOver)
   container.addEventListener('drop', handleDrop)
-  container.addEventListener('dragenter', (e) => console.log('[DragEnter] target:', e.target.tagName))
-  container.addEventListener('dragleave', (e) => console.log('[DragLeave] target:', e.target.tagName))
-
-  // 同时监听 document 级别
-  document.addEventListener('dragover', handleDragOver)
-  document.addEventListener('drop', handleDrop)
 
   // 处理边点击选中
   lf.on('edge:click', ({ edge }) => {
