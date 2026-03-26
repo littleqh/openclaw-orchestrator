@@ -10,6 +10,6 @@ import java.util.Optional;
 @Repository
 public interface WorkflowRepository extends JpaRepository<Workflow, Long> {
 
-    @Query("SELECT DISTINCT w FROM Workflow w LEFT JOIN FETCH w.nodes n LEFT JOIN FETCH n.worker LEFT JOIN FETCH w.edges e LEFT JOIN FETCH e.sourceNode LEFT JOIN FETCH e.targetNode WHERE w.id = :id")
+    @Query("SELECT DISTINCT w FROM Workflow w LEFT JOIN FETCH w.nodes n LEFT JOIN FETCH n.operation LEFT JOIN FETCH w.edges e LEFT JOIN FETCH e.sourceNode LEFT JOIN FETCH e.targetNode WHERE w.id = :id")
     Optional<Workflow> findByIdWithDetails(@Param("id") Long id);
 }

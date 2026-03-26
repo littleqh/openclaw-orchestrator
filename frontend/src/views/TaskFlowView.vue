@@ -260,15 +260,13 @@ async function loadWorkflow(wf) {
     // 先创建所有节点
     for (const node of nodes) {
       console.log('[Load] Creating node:', node)
-      const displayName = node.operationName + (node.workerName ? ' → ' + node.workerName : '')
       const lfNode = {
-        type: 'rect',
+        type: 'operation-node',
         id: node.tempId,
         x: node.x,
         y: node.y,
         width: 160,
-        height: 60,
-        text: '⚙️ ' + displayName,
+        height: 80,
         properties: {
           operationId: node.operationId,
           operationName: node.operationName,
@@ -340,10 +338,11 @@ async function confirmWorkerSelection() {
   const opDetail = await operationApi.get(operationId).catch(() => ({}))
   newProperties.operationDescription = opDetail.description || ''
   newProperties.operationSkills = opDetail.skills?.map(s => s.name).join(', ') || '-'
-  lf.updateNodeData(selectedNode.value.id, {
-    properties: newProperties,
-    text: '⚙️ ' + selectedNode.value.properties.operationName + ' → ' + (worker?.name || '未选')
-  })
+  // LogicFlow 2.x API: get node model and update properties
+  const nodeModel = lf.graphModel.getNodeModelById(selectedNode.value.id)
+  if (nodeModel) {
+    nodeModel.setProperties(newProperties)
+  }
   showWorkerSelect.value = false
 }
 
@@ -368,22 +367,113 @@ onMounted(async () => {
     multipleSelect: true,
     // 键盘删除
     keyboard: { delete: true },
-    // 主题配置
+    // 主题配置 - rect样式用于自定义节点
     style: {
       rect: {
         fill: '#fff',
         stroke: '#6366f1',
         strokeWidth: 2,
         radius: 10
-      },
-      text: {
-        color: '#333',
-        fontSize: 14
-      },
-      nodeText: {
-        color: '#333',
-        fontSize: 14
       }
+    }
+  })
+
+  // 注册自定义SVG节点
+  lf.register('operation-node', ({ RectNode, RectNodeModel, h }) => {
+    class OperationNodeView extends RectNode {
+      getShape() {
+        const { x, y, width, height } = this.props.model
+        const { fill, stroke, strokeWidth, radius } = this.props.model.getNodeStyle()
+        const opName = this.props.model.properties?.operationName || ''
+        const workerName = this.props.model.properties?.workerName || ''
+        const left = x - width / 2
+        const top = y - height / 2
+
+        // 使用 foreignObject 在 SVG 中嵌入 HTML 以实现精确的文本布局
+        return h('g', {}, [
+          h('rect', {
+            x: left,
+            y: top,
+            width,
+            height,
+            fill,
+            stroke,
+            strokeWidth,
+            rx: radius,
+            ry: radius
+          }),
+          h('foreignObject', {
+            x: left,
+            y: top,
+            width: width,
+            height: height
+          }, [
+            h('div', {
+              xmlns: 'http://www.w3.org/1999/xhtml',
+              style: {
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                height: '100%',
+                padding: '0 6px',
+                boxSizing: 'border-box',
+                fontFamily: 'Arial, sans-serif',
+                fontSize: '13px'
+              }
+            }, [
+              h('div', {
+                style: {
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  lineHeight: '1.5'
+                }
+              }, [
+                h('span', {}, '⚙️'),
+                h('span', {
+                  style: {
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }
+                }, opName)
+              ]),
+              h('div', {
+                style: {
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  lineHeight: '1.5',
+                  color: '#666'
+                }
+              }, [
+                h('span', {}, '🦞'),
+                h('span', {
+                  style: {
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }
+                }, workerName)
+              ])
+            ])
+          ])
+        ])
+      }
+    }
+
+    class OperationNodeModel extends RectNodeModel {
+      setAttributes() {
+        this.width = 160
+        this.height = 80
+        this.radius = 10
+      }
+    }
+
+    return {
+      type: 'operation-node',
+      view: OperationNodeView,
+      model: OperationNodeModel
     }
   })
 
@@ -410,14 +500,15 @@ onMounted(async () => {
     const item = JSON.parse(data)
     if (item.type !== 'operation') return
     const point = lf.graphModel.getPointByClient({ x: e.clientX, y: e.clientY })
+    const x = point.canvasOverlayPosition?.x || point.domOverlayPosition?.x
+    const y = point.canvasOverlayPosition?.y || point.domOverlayPosition?.y
     lf.addNode({
-      type: 'rect',
+      type: 'operation-node',
       id: `node_${item.id}_${Date.now()}`,
-      x: point.canvasOverlayPosition?.x || point.domOverlayPosition?.x,
-      y: point.canvasOverlayPosition?.y || point.domOverlayPosition?.y,
+      x: x,
+      y: y,
       width: 160,
-      height: 60,
-      text: '⚙️ ' + item.name,
+      height: 80,
       properties: {
         operationId: item.id,
         operationName: item.name,
@@ -453,16 +544,40 @@ onMounted(async () => {
     if (!node || !node.id) return
     selectedNode.value = node
     const operationId = node.properties?.operationId
+    let eligibleWorkers = []
+    let operationDescription = ''
+    let operationSkills = '-'
     try {
       const opDetail = await operationApi.get(operationId)
-      const eligibleWorkers = opDetail.workers || []
+      eligibleWorkers = opDetail.workers || []
+      operationDescription = opDetail.description || ''
+      if (opDetail.skills && opDetail.skills.length > 0) {
+        operationSkills = opDetail.skills.map(s => s.name).join(', ')
+      }
+    } catch (e) {
+      console.warn('Failed to fetch operation details, using all workers')
+    }
+    // 更新 selectedNode 的 properties 用于显示
+    selectedNode.value = {
+      ...node,
+      properties: {
+        ...node.properties,
+        operationDescription,
+        operationSkills
+      }
+    }
+    // 如果操作没有关联的 workers，显示所有 workers
+    if (eligibleWorkers.length === 0) {
+      const allWorkers = await workerApi.list()
+      workerOptions.value = allWorkers.map(w => ({
+        label: w.name + (w.nickname ? ` (${w.nickname})` : ''),
+        value: w.id
+      }))
+    } else {
       workerOptions.value = eligibleWorkers.map(w => ({
         label: w.name + (w.nickname ? ` (${w.nickname})` : ''),
         value: w.id
       }))
-    } catch (e) {
-      const allWorkers = await workerApi.list()
-      workerOptions.value = allWorkers.map(w => ({ label: w.name, value: w.id }))
     }
     selectedWorkerId.value = node.properties?.workerId || lastSelectedWorkers.value[operationId] || null
     showWorkerSelect.value = true
@@ -567,12 +682,6 @@ onMounted(async () => {
   stroke-width: 2 !important;
   rx: 10 !important;
   ry: 10 !important;
-}
-:deep(.lf-node text) {
-  fill: #333 !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  text-anchor: middle !important;
 }
 
 /* Worker selection modal styles */

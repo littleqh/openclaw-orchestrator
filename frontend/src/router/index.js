@@ -4,6 +4,8 @@ import InstanceManager from '../views/InstanceManager.vue'
 import MonitorView from '../views/MonitorView.vue'
 import WorkerView from '../views/WorkerView.vue'
 import TaskFlowView from '../views/TaskFlowView.vue'
+import SkillView from '../views/SkillView.vue'
+import OperationView from '../views/OperationView.vue'
 
 const routes = [
   { path: '/', redirect: '/dashboard' },
@@ -11,7 +13,9 @@ const routes = [
   { path: '/instances', name: 'Instances', component: InstanceManager },
   { path: '/monitor', name: 'Monitor', component: MonitorView },
   { path: '/workers', name: 'Workers', component: WorkerView },
-  { path: '/task-flow', name: 'TaskFlow', component: TaskFlowView }
+  { path: '/task-flow', name: 'TaskFlow', component: TaskFlowView },
+  { path: '/skills', name: 'Skills', component: SkillView },
+  { path: '/operations', name: 'Operations', component: OperationView }
 ]
 
 const router = createRouter({

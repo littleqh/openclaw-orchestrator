@@ -19,6 +19,26 @@ export const instanceApi = {
     api.post(`/instances/${id}/invoke`, { tool, args }).then(r => r.data)
 }
 
+// 技能管理
+export const skillApi = {
+  list: () => api.get('/skills').then(r => r.data),
+  get: (id) => api.get(`/skills/${id}`).then(r => r.data),
+  create: (data) => api.post('/skills', data).then(r => r.data),
+  update: (id, data) => api.put(`/skills/${id}`, data).then(r => r.data),
+  delete: (id) => api.delete(`/skills/${id}`),
+  checkDelete: (id) => api.get(`/skills/${id}/check-delete`).then(r => r.data),
+  forceDelete: (id) => api.delete(`/skills/${id}/force`)
+}
+
+// 操作管理
+export const operationApi = {
+  list: () => api.get('/operations').then(r => r.data),
+  get: (id) => api.get(`/operations/${id}`).then(r => r.data),
+  create: (data) => api.post('/operations', data).then(r => r.data),
+  update: (id, data) => api.put(`/operations/${id}`, data).then(r => r.data),
+  delete: (id) => api.delete(`/operations/${id}`)
+}
+
 // SSE 连接
 export function connectSse(instanceId, onMessage, onError) {
   const url = `/api/sse/status/${instanceId}`

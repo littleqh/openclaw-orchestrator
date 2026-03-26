@@ -50,6 +50,16 @@ const menuOptions = [
     label: '任务连线',
     key: '/task-flow',
     icon: () => h('span', '🔗')
+  },
+  {
+    label: '技能管理',
+    key: '/skills',
+    icon: () => h('span', '🛠️')
+  },
+  {
+    label: '操作管理',
+    key: '/operations',
+    icon: () => h('span', '⚙️')
   }
 ]
 

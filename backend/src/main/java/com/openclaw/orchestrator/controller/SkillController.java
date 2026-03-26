@@ -1,13 +1,12 @@
 package com.openclaw.orchestrator.controller;
 
+import com.openclaw.orchestrator.dto.SkillDeleteResponse;
+import com.openclaw.orchestrator.dto.SkillDetail;
 import com.openclaw.orchestrator.dto.SkillRequest;
-import com.openclaw.orchestrator.entity.Skill;
 import com.openclaw.orchestrator.service.SkillService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
@@ -19,12 +18,37 @@ public class SkillController {
     private final SkillService skillService;
 
     @GetMapping
-    public ResponseEntity<List<Skill>> list() {
-        return ResponseEntity.ok(skillService.listSkills());
+    public List<SkillDetail> list() {
+        return skillService.list();
+    }
+
+    @GetMapping("/{id}")
+    public SkillDetail get(@PathVariable Long id) {
+        return skillService.getById(id);
     }
 
     @PostMapping
-    public ResponseEntity<Skill> create(@Valid @RequestBody SkillRequest request) {
-        return ResponseEntity.ok(skillService.createSkill(request));
+    public SkillDetail create(@Valid @RequestBody SkillRequest request) {
+        return skillService.create(request);
+    }
+
+    @PutMapping("/{id}")
+    public SkillDetail update(@PathVariable Long id, @Valid @RequestBody SkillRequest request) {
+        return skillService.update(id, request);
+    }
+
+    @GetMapping("/{id}/check-delete")
+    public SkillDeleteResponse checkDelete(@PathVariable Long id) {
+        return skillService.checkDelete(id);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        skillService.delete(id);
+    }
+
+    @DeleteMapping("/{id}/force")
+    public void forceDelete(@PathVariable Long id) {
+        skillService.forceDelete(id);
     }
 }
