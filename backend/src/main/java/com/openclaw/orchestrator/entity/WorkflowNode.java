@@ -24,9 +24,12 @@ public class WorkflowNode {
     private Workflow workflow;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "worker_id", nullable = false)
-    @JsonIgnoreProperties({"skills", "nodes"})
-    private Worker worker;
+    @JoinColumn(name = "operation_id", nullable = false)
+    @JsonIgnoreProperties({"workers", "skills"})
+    private Operation operation;
+
+    @Column(name = "worker_id")
+    private Long workerId;  // 节点选择的员工 ID，可为空
 
     @Column(nullable = false)
     private Double x;
