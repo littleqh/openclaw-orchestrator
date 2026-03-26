@@ -74,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import LogicFlow from '@logicflow/core'
 import '@logicflow/core/es/style/index.css'
@@ -427,11 +427,14 @@ onMounted(async () => {
     })
   }
 
+  const handleDragEnter = (e) => e.preventDefault()
+  const handleDragLeave = (e) => e.preventDefault()
+
   // 监听 container 拖拽事件
   container.addEventListener('dragover', handleDragOver)
   container.addEventListener('drop', handleDrop)
-  container.addEventListener('dragenter', (e) => e.preventDefault())
-  container.addEventListener('dragleave', (e) => e.preventDefault())
+  container.addEventListener('dragenter', handleDragEnter)
+  container.addEventListener('dragleave', handleDragLeave)
 
   // 处理边点击选中
   lf.on('edge:click', (ev) => {
@@ -472,7 +475,7 @@ onMounted(async () => {
   })
 
   // 键盘删除
-  document.addEventListener('keydown', (e) => {
+  const handleKeyDown = (e) => {
     if (e.key === 'Delete' && selectedEdgeId) {
       if (selectedEdgeId.startsWith('node_')) {
         const nodeId = selectedEdgeId.replace('node_', '')
@@ -483,6 +486,17 @@ onMounted(async () => {
       selectedEdgeId = null
       hideDeleteButton()
     }
+  }
+  document.addEventListener('keydown', handleKeyDown)
+
+  // 清理函数
+  onUnmounted(() => {
+    hideDeleteButton()
+    document.removeEventListener('keydown', handleKeyDown)
+    container.removeEventListener('dragover', handleDragOver)
+    container.removeEventListener('drop', handleDrop)
+    container.removeEventListener('dragenter', handleDragEnter)
+    container.removeEventListener('dragleave', handleDragLeave)
   })
 })
 </script>
@@ -559,11 +573,6 @@ onMounted(async () => {
   font-size: 14px !important;
   font-weight: 500 !important;
   text-anchor: middle !important;
-}
-
-/* 画布容器需要 relative 定位以容纳删除按钮 */
-.canvas-container {
-  position: relative;
 }
 
 /* Worker selection modal styles */
