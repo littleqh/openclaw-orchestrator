@@ -148,10 +148,10 @@ public class WorkflowService {
                 if (n.getWorkerId() != null) {
                     var workerOpt = workerRepository.findById(n.getWorkerId());
                     if (workerOpt.isPresent()) {
-                        var w = workerOpt.get();
-                        workerName = w.getName();
-                        workerNickname = w.getNickname();
-                        workerAvatar = w.getAvatar();
+                        var worker = workerOpt.get();
+                        workerName = worker.getName();
+                        workerNickname = worker.getNickname();
+                        workerAvatar = worker.getAvatar();
                     }
                 }
                 return NodeDetail.builder()
