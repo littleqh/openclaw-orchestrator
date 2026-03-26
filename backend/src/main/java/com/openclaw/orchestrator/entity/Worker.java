@@ -14,7 +14,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@EqualsAndHashCode(exclude = {"skills"})
+@EqualsAndHashCode(exclude = {"skills", "operations"})
 public class Worker {
 
     @Id
@@ -56,6 +56,11 @@ public class Worker {
     @Builder.Default
     @JsonIgnoreProperties("workers")
     private Set<Skill> skills = new HashSet<>();
+
+    @ManyToMany(mappedBy = "workers", fetch = FetchType.LAZY)
+    @Builder.Default
+    @JsonIgnoreProperties("workers")
+    private Set<Operation> operations = new HashSet<>();
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
