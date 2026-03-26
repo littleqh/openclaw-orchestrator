@@ -7,8 +7,10 @@ import lombok.Data;
 public class NodeRequest {
     private String tempId;
 
-    @NotNull(message = "员工ID不能为空")
-    private Long workerId;
+    @NotNull(message = "操作ID不能为空")
+    private Long operationId;
+
+    private Long workerId;  // 可选，节点选择的员工
 
     @NotNull(message = "坐标X不能为空")
     private Double x;
