@@ -3,6 +3,7 @@ package com.openclaw.orchestrator.service;
 import com.openclaw.orchestrator.dto.*;
 import com.openclaw.orchestrator.entity.Operation;
 import com.openclaw.orchestrator.entity.Skill;
+import com.openclaw.orchestrator.entity.Worker;
 import com.openclaw.orchestrator.repository.OperationRepository;
 import com.openclaw.orchestrator.repository.SkillRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +20,8 @@ public class OperationService {
     private final SkillRepository skillRepository;
 
     public List<OperationDetail> list() {
-        return operationRepository.findAll().stream()
-            .map(this::toDetailBasic)
+        return operationRepository.findAllWithSkills().stream()
+            .map(this::toDetail)
             .collect(Collectors.toList());
     }
 
@@ -89,11 +90,13 @@ public class OperationService {
                 .description(s.getDescription())
                 .build())
             .collect(Collectors.toList());
+        List<Worker> workers = new ArrayList<>(o.getWorkers());
         return OperationDetail.builder()
             .id(o.getId())
             .name(o.getName())
             .description(o.getDescription())
             .skills(skills)
+            .workers(workers)
             .createdAt(o.getCreatedAt())
             .updatedAt(o.getUpdatedAt())
             .build();
