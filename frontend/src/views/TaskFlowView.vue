@@ -1,7 +1,7 @@
 <template>
   <div class="task-flow-view">
     <div class="sidebar">
-      <WorkerDragPanel :workers="workers" />
+      <OperationDragPanel :operations="operations" />
     </div>
     <div class="canvas-container">
       <div class="toolbar">
@@ -42,6 +42,34 @@
         <n-button type="primary" @click="saveAsNewWorkflow" :disabled="!newWorkflowName.trim()">保存</n-button>
       </template>
     </n-modal>
+
+    <!-- Worker selection modal -->
+    <n-modal v-model:show="showWorkerSelect" preset="card" title="选择数字员工" style="width: 450px">
+      <div v-if="selectedNode" class="node-dialog-content">
+        <div class="info-section">
+          <div class="info-row">
+            <span class="label">操作名称：</span>
+            <span class="value">{{ selectedNode.properties?.operationName }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">描述：</span>
+            <span class="value">{{ selectedNode.properties?.operationDescription || '-' }}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">关联技能：</span>
+            <span class="value skills">{{ selectedNode.properties?.operationSkills || '-' }}</span>
+          </div>
+        </div>
+        <n-divider />
+        <n-form-item label="选择数字员工">
+          <n-select v-model:value="selectedWorkerId" :options="workerOptions" placeholder="请选择数字员工" />
+        </n-form-item>
+      </div>
+      <template #footer>
+        <n-button @click="showWorkerSelect = false">取消</n-button>
+        <n-button type="primary" @click="confirmWorkerSelection">确认</n-button>
+      </template>
+    </n-modal>
   </div>
 </template>
 
@@ -50,20 +78,28 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import LogicFlow from '@logicflow/core'
 import '@logicflow/core/es/style/index.css'
-import WorkerDragPanel from '../components/WorkerDragPanel.vue'
+import OperationDragPanel from '../components/OperationDragPanel.vue'
 import { workerApi } from '../api/workerApi.js'
 import { workflowApi } from '../api/workflowApi.js'
+import { operationApi } from '../api/index.js'
+import { NModal, NForm, NFormItem, NSelect, NDivider, useMessage } from 'naive-ui'
 
 const route = useRoute()
 const router = useRouter()
 
 const workers = ref([])
 const workflows = ref([])
+const operations = ref([])
 const currentWorkflow = ref(null)
 const showList = ref(false)
 const showSaveAsModal = ref(false)
 const newWorkflowName = ref('')
 const newWorkflowDesc = ref('')
+const showWorkerSelect = ref(false)
+const selectedNode = ref(null)
+const selectedWorkerId = ref(null)
+const workerOptions = ref([])
+const lastSelectedWorkers = ref({})
 
 let lf = null
 let selectedEdgeId = null
@@ -137,6 +173,7 @@ function getCanvasData() {
   return {
     nodes: graphData.nodes.map(node => ({
       tempId: node.id,
+      operationId: node.properties?.operationId,
       workerId: node.properties?.workerId,
       x: node.x,
       y: node.y
@@ -223,6 +260,7 @@ async function loadWorkflow(wf) {
     // 先创建所有节点
     for (const node of nodes) {
       console.log('[Load] Creating node:', node)
+      const displayName = node.operationName + (node.workerName ? ' → ' + node.workerName : '')
       const lfNode = {
         type: 'rect',
         id: node.tempId,
@@ -230,11 +268,14 @@ async function loadWorkflow(wf) {
         y: node.y,
         width: 160,
         height: 60,
-        text: '🦞 ' + (node.workerName || '员工'),
+        text: '⚙️ ' + displayName,
         properties: {
+          operationId: node.operationId,
+          operationName: node.operationName,
           workerId: node.workerId,
-          nickname: node.workerNickname,
-          avatar: node.workerAvatar
+          workerName: node.workerName,
+          workerNickname: node.workerNickname,
+          workerAvatar: node.workerAvatar
         }
       }
       lf.addNode(lfNode)
@@ -281,7 +322,34 @@ async function deleteWorkflow(wf) {
   }
 }
 
+async function confirmWorkerSelection() {
+  if (!selectedNode.value) return
+  const operationId = selectedNode.value.properties?.operationId
+  const workersData = await workerApi.list()
+  const worker = workersData.find(w => w.id === selectedWorkerId.value)
+  if (selectedWorkerId.value && operationId) {
+    lastSelectedWorkers.value[operationId] = selectedWorkerId.value
+  }
+  const newProperties = {
+    ...selectedNode.value.properties,
+    workerId: selectedWorkerId.value,
+    workerName: worker?.name || '员工',
+    workerNickname: worker?.nickname,
+    workerAvatar: worker?.avatar
+  }
+  const opDetail = await operationApi.get(operationId).catch(() => ({}))
+  newProperties.operationDescription = opDetail.description || ''
+  newProperties.operationSkills = opDetail.skills?.map(s => s.name).join(', ') || '-'
+  lf.updateNodeData(selectedNode.value.id, {
+    properties: newProperties,
+    text: '⚙️ ' + selectedNode.value.properties.operationName + ' → ' + (worker?.name || '未选')
+  })
+  showWorkerSelect.value = false
+}
+
 onMounted(async () => {
+  // 加载操作列表
+  operations.value = await operationApi.list()
   // 加载员工
   workers.value = await workerApi.list()
 
@@ -339,29 +407,22 @@ onMounted(async () => {
     e.preventDefault()
     const data = e.dataTransfer.getData('application/json')
     if (!data) return
-
-    const worker = JSON.parse(data)
-
-    // 计算画布上的坐标
-    const point = lf.graphModel.getPointByClient({
-      x: e.clientX,
-      y: e.clientY
-    })
-    const x = point.canvasOverlayPosition?.x || point.domOverlayPosition?.x
-    const y = point.canvasOverlayPosition?.y || point.domOverlayPosition?.y
-
+    const item = JSON.parse(data)
+    if (item.type !== 'operation') return
+    const point = lf.graphModel.getPointByClient({ x: e.clientX, y: e.clientY })
     lf.addNode({
       type: 'rect',
-      id: `node_${worker.id}_${Date.now()}`,
-      x: x,
-      y: y,
+      id: `node_${item.id}_${Date.now()}`,
+      x: point.canvasOverlayPosition?.x || point.domOverlayPosition?.x,
+      y: point.canvasOverlayPosition?.y || point.domOverlayPosition?.y,
       width: 160,
       height: 60,
-      text: '🦞 ' + worker.name,
+      text: '⚙️ ' + item.name,
       properties: {
-        workerId: worker.id,
-        nickname: worker.nickname,
-        avatar: worker.avatar
+        operationId: item.id,
+        operationName: item.name,
+        workerId: null,
+        workerName: null
       }
     })
   }
@@ -384,11 +445,24 @@ onMounted(async () => {
   })
 
   // 处理节点点击选中
-  lf.on('node:click', (ev) => {
+  lf.on('node:click', async (ev) => {
     const node = ev.data || ev
     if (!node || !node.id) return
-
-    selectedEdgeId = 'node_' + node.id
+    selectedNode.value = node
+    const operationId = node.properties?.operationId
+    try {
+      const opDetail = await operationApi.get(operationId)
+      const eligibleWorkers = opDetail.workers || []
+      workerOptions.value = eligibleWorkers.map(w => ({
+        label: w.name + (w.nickname ? ` (${w.nickname})` : ''),
+        value: w.id
+      }))
+    } catch (e) {
+      const allWorkers = await workerApi.list()
+      workerOptions.value = allWorkers.map(w => ({ label: w.name, value: w.id }))
+    }
+    selectedWorkerId.value = node.properties?.workerId || lastSelectedWorkers.value[operationId] || null
+    showWorkerSelect.value = true
   })
 
   // 点击空白处清除选中
@@ -490,5 +564,35 @@ onMounted(async () => {
 /* 画布容器需要 relative 定位以容纳删除按钮 */
 .canvas-container {
   position: relative;
+}
+
+/* Worker selection modal styles */
+.node-dialog-content {
+  padding: 8px 0;
+}
+.info-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+}
+.info-row {
+  display: flex;
+  margin-bottom: 8px;
+}
+.info-row:last-child {
+  margin-bottom: 0;
+}
+.label {
+  font-weight: 500;
+  color: #666;
+  width: 80px;
+  flex-shrink: 0;
+}
+.value {
+  color: #333;
+}
+.skills {
+  color: #888;
+  font-size: 13px;
 }
 </style>
