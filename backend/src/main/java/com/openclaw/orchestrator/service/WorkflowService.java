@@ -2,6 +2,7 @@ package com.openclaw.orchestrator.service;
 
 import com.openclaw.orchestrator.dto.*;
 import com.openclaw.orchestrator.entity.*;
+import com.openclaw.orchestrator.repository.OperationRepository;
 import com.openclaw.orchestrator.repository.WorkflowRepository;
 import com.openclaw.orchestrator.repository.WorkerRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ public class WorkflowService {
 
     private final WorkflowRepository workflowRepository;
     private final WorkerRepository workerRepository;
+    private final OperationRepository operationRepository;
 
     public List<WorkflowDetail> list() {
         return workflowRepository.findAll().stream()
@@ -41,11 +43,11 @@ public class WorkflowService {
 
         if (request.getNodes() != null) {
             for (NodeRequest nr : request.getNodes()) {
-                Worker worker = workerRepository.findById(nr.getWorkerId())
-                    .orElseThrow(() -> new RuntimeException("NOT_FOUND:员工不存在"));
                 WorkflowNode node = WorkflowNode.builder()
                     .tempId(nr.getTempId())
-                    .worker(worker)
+                    .operation(operationRepository.findById(nr.getOperationId())
+                        .orElseThrow(() -> new RuntimeException("NOT_FOUND:操作不存在")))
+                    .workerId(nr.getWorkerId())
                     .x(nr.getX())
                     .y(nr.getY())
                     .build();
@@ -87,11 +89,11 @@ public class WorkflowService {
 
         if (request.getNodes() != null) {
             for (NodeRequest nr : request.getNodes()) {
-                Worker worker = workerRepository.findById(nr.getWorkerId())
-                    .orElseThrow(() -> new RuntimeException("NOT_FOUND:员工不存在"));
                 WorkflowNode node = WorkflowNode.builder()
                     .tempId(nr.getTempId())
-                    .worker(worker)
+                    .operation(operationRepository.findById(nr.getOperationId())
+                        .orElseThrow(() -> new RuntimeException("NOT_FOUND:操作不存在")))
+                    .workerId(nr.getWorkerId())
                     .x(nr.getX())
                     .y(nr.getY())
                     .build();
@@ -139,16 +141,32 @@ public class WorkflowService {
 
     private WorkflowDetail toDetail(Workflow w) {
         List<NodeDetail> nodes = w.getNodes().stream()
-            .map(n -> NodeDetail.builder()
-                .id(n.getId())
-                .tempId(n.getTempId())
-                .workerId(n.getWorker().getId())
-                .x(n.getX())
-                .y(n.getY())
-                .workerName(n.getWorker().getName())
-                .workerNickname(n.getWorker().getNickname())
-                .workerAvatar(n.getWorker().getAvatar())
-                .build())
+            .map(n -> {
+                String workerName = null;
+                String workerNickname = null;
+                String workerAvatar = null;
+                if (n.getWorkerId() != null) {
+                    var workerOpt = workerRepository.findById(n.getWorkerId());
+                    if (workerOpt.isPresent()) {
+                        var w = workerOpt.get();
+                        workerName = w.getName();
+                        workerNickname = w.getNickname();
+                        workerAvatar = w.getAvatar();
+                    }
+                }
+                return NodeDetail.builder()
+                    .id(n.getId())
+                    .tempId(n.getTempId())
+                    .operationId(n.getOperation().getId())
+                    .operationName(n.getOperation().getName())
+                    .workerId(n.getWorkerId())
+                    .workerName(workerName)
+                    .workerNickname(workerNickname)
+                    .workerAvatar(workerAvatar)
+                    .x(n.getX())
+                    .y(n.getY())
+                    .build();
+            })
             .collect(Collectors.toList());
 
         List<EdgeDetail> edges = w.getEdges().stream()
