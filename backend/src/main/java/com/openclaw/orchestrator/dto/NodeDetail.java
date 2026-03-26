@@ -8,6 +8,8 @@ import lombok.Builder;
 public class NodeDetail {
     private Long id;
     private String tempId;
+    private Long operationId;
+    private String operationName;
     private Long workerId;
     private Double x;
     private Double y;
