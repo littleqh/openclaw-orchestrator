@@ -1,9 +1,37 @@
 import axios from 'axios'
+import router from '../router'
 
 const api = axios.create({
   baseURL: '/api',
   timeout: 10000
 })
+
+// Request interceptor: add Authorization header
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `User ${token}`
+  }
+  return config
+})
+
+// Response interceptor: handle 401
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      router.push('/login')
+    }
+    return Promise.reject(error)
+  }
+)
+
+// Helper methods for other api modules
+export const post = (url, data) => api.post(url, data).then(r => r.data)
+export const get = (url, params) => api.get(url, { params }).then(r => r.data)
+export const put = (url, data) => api.put(url, data).then(r => r.data)
+export const del = (url) => api.delete(url)
 
 // 实例管理
 export const instanceApi = {
