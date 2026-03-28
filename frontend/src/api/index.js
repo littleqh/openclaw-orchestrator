@@ -88,3 +88,5 @@ export function connectSse(instanceId, onMessage, onError) {
 
   return eventSource
 }
+
+export default api
