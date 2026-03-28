@@ -25,3 +25,7 @@ server:
 logging:
   level:
     com.openclaw: DEBUG
+
+jwt:
+  secret: openclaw-orchestrator-jwt-secret-key-change-in-production-2024
+  expiration: 86400000  # 24 hours in milliseconds
