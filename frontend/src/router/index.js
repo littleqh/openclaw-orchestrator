@@ -11,13 +11,13 @@ import TokenManagement from '../views/TokenManagement.vue'
 
 const routes = [
   { path: '/', redirect: '/dashboard' },
-  { path: '/dashboard', name: 'Dashboard', component: Dashboard },
-  { path: '/instances', name: 'Instances', component: InstanceManager },
-  { path: '/monitor', name: 'Monitor', component: MonitorView },
-  { path: '/workers', name: 'Workers', component: WorkerView },
-  { path: '/task-flow', name: 'TaskFlow', component: TaskFlowView },
-  { path: '/skills', name: 'Skills', component: SkillView },
-  { path: '/operations', name: 'Operations', component: OperationView },
+  { path: '/dashboard', name: 'Dashboard', component: Dashboard, meta: { requiresAuth: true } },
+  { path: '/instances', name: 'Instances', component: InstanceManager, meta: { requiresAuth: true } },
+  { path: '/monitor', name: 'Monitor', component: MonitorView, meta: { requiresAuth: true } },
+  { path: '/workers', name: 'Workers', component: WorkerView, meta: { requiresAuth: true } },
+  { path: '/task-flow', name: 'TaskFlow', component: TaskFlowView, meta: { requiresAuth: true } },
+  { path: '/skills', name: 'Skills', component: SkillView, meta: { requiresAuth: true } },
+  { path: '/operations', name: 'Operations', component: OperationView, meta: { requiresAuth: true } },
   { path: '/login', name: 'Login', component: LoginView },
   { path: '/token-management', name: 'TokenManagement', component: TokenManagement, meta: { requiresAuth: true } }
 ]
