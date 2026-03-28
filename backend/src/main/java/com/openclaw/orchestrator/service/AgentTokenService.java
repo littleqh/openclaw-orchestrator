@@ -56,6 +56,26 @@ public class AgentTokenService {
         return token;
     }
 
+    public TokenResponse createSystemTokenResponse() {
+        String token = createSystemToken();
+        List<AgentToken> all = agentTokenRepository.findAll();
+        AgentToken created = all.stream()
+                .filter(t -> t.getToken() != null && t.getToken().equals(token))
+                .findFirst()
+                .orElseThrow();
+        return toResponse(created, true);
+    }
+
+    public TokenResponse createAgentTokenResponse(Long workerId) {
+        System.out.println("=== createAgentTokenResponse ===");
+        System.out.println("workerId: " + workerId);
+        String token = createAgentToken(workerId);
+        System.out.println("created token: " + token);
+        AgentToken created = agentTokenRepository.findByToken(token).orElseThrow();
+        System.out.println("found created token: " + (created != null ? "id=" + created.getId() : "null"));
+        return toResponse(created, true);
+    }
+
     @Transactional
     public String resetToken(Long id) {
         AgentToken agentToken = agentTokenRepository.findById(id)
@@ -66,6 +86,11 @@ public class AgentTokenService {
         agentToken.setLastAccessAt(LocalDateTime.now());
         agentTokenRepository.save(agentToken);
         return newToken;
+    }
+
+    public TokenResponse resetTokenResponse(Long id) {
+        resetToken(id);
+        return getTokenInfo(id);
     }
 
     @Transactional
@@ -79,12 +104,24 @@ public class AgentTokenService {
     public TokenResponse getTokenInfo(Long id) {
         AgentToken agentToken = agentTokenRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("NOT_FOUND:Token not found"));
-        return toResponse(agentToken, false);
+        System.out.println("=== getTokenInfo ===");
+        System.out.println("id: " + id);
+        System.out.println("agentToken.token: " + agentToken.getToken());
+        System.out.println("agentToken.worker: " + agentToken.getWorker());
+        TokenResponse response = toResponse(agentToken, true);
+        System.out.println("response.token: " + response.getToken());
+        return response;
     }
 
     public List<TokenResponse> getAllTokens() {
+        System.out.println("=== getAllTokens ===");
         List<AgentToken> tokens = agentTokenRepository.findAllAgentTokens();
+        System.out.println("agent tokens count: " + tokens.size());
+        for (AgentToken at : tokens) {
+            System.out.println("  - id: " + at.getId() + ", worker: " + (at.getWorker() != null ? at.getWorker().getId() : "null"));
+        }
         AgentToken systemToken = agentTokenRepository.findSystemToken().orElse(null);
+        System.out.println("system token: " + (systemToken != null ? systemToken.getId() : "null"));
 
         List<TokenResponse> responses = tokens.stream()
                 .map(t -> toResponse(t, false))
@@ -93,6 +130,7 @@ public class AgentTokenService {
         if (systemToken != null) {
             responses.add(0, toResponse(systemToken, false));
         }
+        System.out.println("total responses: " + responses.size());
         return responses;
     }
 

@@ -1,6 +1,6 @@
 <template>
   <div class="token-management">
-    <n-tabs type="line" animated>
+    <n-tabs type="line" animated v-model:value="activeTab">
       <n-tab-pane name="system" tab="系统令牌">
         <div class="token-section">
           <n-card v-if="systemToken" title="系统令牌">
@@ -32,18 +32,7 @@
             <template #action>
               <n-button type="primary" size="small" @click="showCreateModal = true">创建令牌</n-button>
             </template>
-            <n-table :columns="columns" :data="agentTokens" :pagination="false" striped>
-              <template #tokenPreview="{ row }">
-                {{ row.tokenPreview || '—' }}
-              </template>
-              <template #actions="{ row }">
-                <n-space>
-                  <n-button size="tiny" @click="copyToken(row)">复制</n-button>
-                  <n-button size="tiny" type="warning" @click="handleReset(row)">重置</n-button>
-                  <n-button size="tiny" type="error" @click="handleDelete(row)">删除</n-button>
-                </n-space>
-              </template>
-            </n-table>
+            <n-data-table :columns="columns" :data="agentTokens" :pagination="false" striped />
             <n-empty v-if="agentTokens.length === 0" description="暂无 Agent 令牌" />
           </n-card>
         </div>
@@ -68,9 +57,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { h, ref, onMounted, computed } from 'vue'
 import { useMessage, useDialog } from 'naive-ui'
-import { NCard, NTabs, NTabPane, NButton, NSpace, NTable, NEmpty, NModal, NForm, NFormItem, NSelect, NDescriptions, NDescriptionsItem } from 'naive-ui'
+import { NCard, NTabs, NTabPane, NButton, NSpace, NDataTable, NEmpty, NModal, NForm, NFormItem, NSelect, NDescriptions, NDescriptionsItem } from 'naive-ui'
 import { tokenApi } from '../api/tokenApi'
 import { workerApi } from '../api/workerApi'
 
@@ -82,9 +71,15 @@ const workers = ref([])
 const showCreateModal = ref(false)
 const selectedWorkerId = ref(null)
 const loading = ref(false)
+const activeTab = ref('system')
 
 const systemToken = computed(() => tokens.value.find(t => t.type === 'SYSTEM'))
-const agentTokens = computed(() => tokens.value.filter(t => t.type === 'AGENT'))
+const agentTokens = computed(() => {
+  console.log('agentTokens computed recalculating, tokens.value:', tokens.value)
+  const filtered = tokens.value.filter(t => t.type === 'AGENT')
+  console.log('agentTokens filtered:', filtered)
+  return filtered
+})
 
 const workerOptions = computed(() =>
   workers.value
@@ -96,7 +91,15 @@ const columns = [
   { title: 'Worker', key: 'workerName' },
   { title: '令牌预览', key: 'tokenPreview' },
   { title: '创建时间', key: 'createdAt', render: (row) => formatDate(row.createdAt) },
-  { title: '操作', key: 'actions', slot: 'actions' }
+  { title: '操作', key: 'actions', render: (row) => {
+    return h(NSpace, {}, {
+      default: () => [
+        h(NButton, { size: 'tiny', onClick: () => copyToken(row) }, { default: () => '复制' }),
+        h(NButton, { size: 'tiny', type: 'warning', onClick: () => handleReset(row) }, { default: () => '重置' }),
+        h(NButton, { size: 'tiny', type: 'error', onClick: () => handleDelete(row) }, { default: () => '删除' })
+      ]
+    })
+  }}
 ]
 
 const loadData = async () => {
@@ -105,8 +108,11 @@ const loadData = async () => {
       tokenApi.getAll(),
       workerApi.list()
     ])
+    console.log('tokenData:', tokenData)
+    console.log('workerData:', workerData)
     tokens.value = tokenData
     workers.value = workerData
+    console.log('agentTokens:', agentTokens.value)
   } catch (error) {
     message.error('加载数据失败')
   }
@@ -182,14 +188,17 @@ const handleDelete = async (token) => {
 
 const copyToken = async (token) => {
   try {
+    console.log('copyToken called with:', token)
     const fullToken = await tokenApi.getById(token.id)
-    if (fullToken.token) {
+    console.log('fullToken response:', fullToken)
+    if (fullToken && fullToken.token) {
       await navigator.clipboard.writeText(fullToken.token)
       message.success('令牌已复制到剪贴板')
     } else {
       message.warning('无法复制完整令牌，请重置后复制')
     }
   } catch (error) {
+    console.error('copyToken error:', error)
     message.error('复制失败')
   }
 }

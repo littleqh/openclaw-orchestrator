@@ -32,7 +32,13 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
+                // Agent endpoints - AgentTokenFilter handles auth
+                .requestMatchers("/api/v1/agent/**").permitAll()
+                // Admin endpoints - JWT required (Agent token also works via AgentTokenFilter)
+                .requestMatchers("/api/v1/admin/**").authenticated()
+                // All other requests require authentication
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

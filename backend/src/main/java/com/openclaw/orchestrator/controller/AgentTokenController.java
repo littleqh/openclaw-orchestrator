@@ -24,30 +24,27 @@ public class AgentTokenController {
 
     @PostMapping
     public ResponseEntity<TokenResponse> create(@RequestBody(required = false) TokenCreateRequest request) {
-        String token;
+        TokenResponse created;
         if (request == null || request.getWorkerId() == null) {
-            token = agentTokenService.createSystemToken();
+            created = agentTokenService.createSystemTokenResponse();
         } else {
-            token = agentTokenService.createAgentToken(request.getWorkerId());
+            created = agentTokenService.createAgentTokenResponse(request.getWorkerId());
         }
-        // Return full list to get the created token's info
-        List<TokenResponse> all = agentTokenService.getAllTokens();
-        TokenResponse created = all.stream()
-                .filter(t -> t.getToken() != null && t.getToken().equals(token))
-                .findFirst()
-                .orElseThrow();
         return ResponseEntity.ok(created);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<TokenResponse> get(@PathVariable Long id) {
-        return ResponseEntity.ok(agentTokenService.getTokenInfo(id));
+        System.out.println("=== AgentTokenController.get ===");
+        System.out.println("id: " + id);
+        TokenResponse response = agentTokenService.getTokenInfo(id);
+        System.out.println("response.token: " + response.getToken());
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}/reset")
     public ResponseEntity<TokenResponse> reset(@PathVariable Long id) {
-        String newToken = agentTokenService.resetToken(id);
-        return ResponseEntity.ok(agentTokenService.getTokenInfo(id));
+        return ResponseEntity.ok(agentTokenService.resetTokenResponse(id));
     }
 
     @DeleteMapping("/{id}")

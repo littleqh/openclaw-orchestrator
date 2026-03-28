@@ -47,11 +47,6 @@ const menuOptions = [
     icon: () => h('span', '👤')
   },
   {
-    label: '任务连线',
-    key: '/task-flow',
-    icon: () => h('span', '🔗')
-  },
-  {
     label: '技能管理',
     key: '/skills',
     icon: () => h('span', '🛠️')
@@ -60,6 +55,21 @@ const menuOptions = [
     label: '操作管理',
     key: '/operations',
     icon: () => h('span', '⚙️')
+  },
+  {
+    label: '任务模板',
+    key: '/workflows',
+    icon: () => h('span', '📋')
+  },
+  {
+    label: '任务实例',
+    key: '/workflow-instances',
+    icon: () => h('span', '▶️')
+  },
+  {
+    label: '令牌管理',
+    key: '/token-management',
+    icon: () => h('span', '🔑')
   }
 ]
 

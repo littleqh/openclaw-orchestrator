@@ -38,64 +38,21 @@
     <n-empty v-else description="暂无操作" />
 
     <!-- 添加/编辑弹窗 -->
-    <n-modal v-model:show="showModal" preset="card" :title="isEdit ? '编辑操作' : '添加操作'" style="width: 500px">
-      <n-form :model="form" label-placement="top">
-        <n-form-item label="操作名称">
-          <n-input v-model:value="form.name" placeholder="例如：代码审查" />
-        </n-form-item>
-        <n-form-item label="描述">
-          <n-input v-model:value="form.description" type="textarea" placeholder="操作描述..." />
-        </n-form-item>
-        <n-form-item label="关联技能">
-          <n-select
-            v-model:value="form.skillIds"
-            :options="skillOptions"
-            multiple
-            placeholder="选择关联的技能"
-          />
-        </n-form-item>
-      </n-form>
-      <template #footer>
-        <div style="display:flex;gap:8px;justify-content:flex-end">
-          <n-button @click="showModal = false">取消</n-button>
-          <n-button type="primary" @click="handleSave" :loading="saving">确认保存</n-button>
-        </div>
-      </template>
-    </n-modal>
+    <OperationFormModal v-model:modelValue="showModal" :operation="selectedOperation" @saved="loadOperations" />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { NButton, NEmpty, NModal, NForm, NFormItem, NInput, NSelect, useMessage } from 'naive-ui'
-import { operationApi, skillApi } from '../api/index.js'
+import { ref, onMounted } from 'vue'
+import { NButton, NEmpty, useMessage } from 'naive-ui'
+import { operationApi } from '../api/index.js'
+import OperationFormModal from '../components/OperationFormModal.vue'
 
 const operations = ref([])
-const skills = ref([])
 const showModal = ref(false)
-const isEdit = ref(false)
-const saving = ref(false)
+const selectedOperation = ref(null)
 const loading = ref(false)
 const message = useMessage()
-
-const form = reactive({
-  id: null,
-  name: '',
-  description: '',
-  skillIds: []
-})
-
-const skillOptions = ref([])
-
-async function loadSkills() {
-  try {
-    const data = await skillApi.list()
-    skills.value = Array.isArray(data) ? data : []
-    skillOptions.value = skills.value.map(s => ({ label: s.name, value: s.id }))
-  } catch (e) {
-    console.error('加载技能失败', e)
-  }
-}
 
 async function loadOperations() {
   loading.value = true
@@ -110,49 +67,13 @@ async function loadOperations() {
 }
 
 function openAdd() {
-  isEdit.value = false
-  form.id = null
-  form.name = ''
-  form.description = ''
-  form.skillIds = []
+  selectedOperation.value = null
   showModal.value = true
 }
 
 function openEdit(op) {
-  isEdit.value = true
-  form.id = op.id
-  form.name = op.name
-  form.description = op.description || ''
-  form.skillIds = op.skills?.map(s => s.id) || []
+  selectedOperation.value = op
   showModal.value = true
-}
-
-async function handleSave() {
-  if (!form.name) {
-    message.warning('请填写操作名称')
-    return
-  }
-  saving.value = true
-  try {
-    const data = {
-      name: form.name,
-      description: form.description,
-      skillIds: form.skillIds
-    }
-    if (isEdit.value) {
-      await operationApi.update(form.id, data)
-      message.success('更新成功')
-    } else {
-      await operationApi.create(data)
-      message.success('添加成功')
-    }
-    showModal.value = false
-    await loadOperations()
-  } catch (e) {
-    message.error((isEdit.value ? '更新' : '添加') + '失败: ' + (e.response?.data?.message || e.message))
-  } finally {
-    saving.value = false
-  }
 }
 
 async function handleDelete(id) {
@@ -163,7 +84,6 @@ async function handleDelete(id) {
 
 onMounted(() => {
   loadOperations()
-  loadSkills()
 })
 </script>
 
