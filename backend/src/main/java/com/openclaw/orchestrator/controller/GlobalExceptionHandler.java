@@ -24,6 +24,10 @@ public class GlobalExceptionHandler {
             error.put("message", message.substring(9));
             return ResponseEntity.status(409).body(error);
         }
+        if (message != null && message.startsWith("401:")) {
+            error.put("message", message.substring(4));
+            return ResponseEntity.status(401).body(error);
+        }
         error.put("message", message != null ? message : "Unknown error");
         return ResponseEntity.badRequest().body(error);
     }
