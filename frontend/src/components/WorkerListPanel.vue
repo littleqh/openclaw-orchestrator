@@ -20,7 +20,10 @@
         </div>
         <div class="worker-info">
           <div class="worker-name">{{ worker.name }}</div>
-          <div class="worker-nickname">{{ worker.nickname || '-' }}</div>
+          <div class="worker-nickname">
+            <n-tag v-if="worker.localRuntime" type="info" size="tiny">本地</n-tag>
+            <span v-else>{{ worker.nickname || '-' }}</span>
+          </div>
         </div>
         <n-tag :type="statusType(worker.status)" size="small" class="status-tag">
           {{ statusText(worker.status) }}

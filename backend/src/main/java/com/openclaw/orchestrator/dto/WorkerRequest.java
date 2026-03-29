@@ -32,4 +32,11 @@ public class WorkerRequest {
     private String avatar;
 
     private List<Long> skillIds;
+
+    private Boolean localRuntime;
+
+    private Long modelId;
+
+    @Size(max = 4000, message = "系统提示不能超过4000字符")
+    private String systemPrompt;
 }

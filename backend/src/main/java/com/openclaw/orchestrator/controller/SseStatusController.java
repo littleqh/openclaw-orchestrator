@@ -30,7 +30,7 @@ public class SseStatusController {
      */
     @GetMapping(value = "/status/{instanceId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter subscribe(@PathVariable Long instanceId) {
-        log.info("SSE subscription request for instance {}", instanceId);
+        log.info("[SSE] Received subscription request for instance {}", instanceId);
 
         // 1. 验证实例存在
         Optional<GatewayInstance> instance = gatewayService.listInstances().stream()

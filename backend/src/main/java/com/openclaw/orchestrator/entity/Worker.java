@@ -62,6 +62,18 @@ public class Worker {
     @JsonIgnoreProperties("workers")
     private Set<Operation> operations = new HashSet<>();
 
+    @Column(name = "local_runtime")
+    @Builder.Default
+    private Boolean localRuntime = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "model_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "workers"})
+    private LLMModel model;
+
+    @Column(name = "system_prompt", length = 4000)
+    private String systemPrompt;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

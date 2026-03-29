@@ -58,6 +58,9 @@ public class SseEmitterService {
             return;
         }
 
+        log.info("[SseEmitterService] Broadcasting statusData statusText present: {}, length: {}",
+                data.getStatusText() != null, data.getStatusText() != null ? data.getStatusText().length() : 0);
+
         List<SseEmitter> dead = new java.util.ArrayList<>();
 
         for (SseEmitter emitter : list) {
@@ -69,6 +72,11 @@ public class SseEmitterService {
                 log.debug("Failed to send to emitter, will remove: {}", e.getMessage());
                 dead.add(emitter);
             }
+        }
+
+        // Clean up dead emitters
+        for (SseEmitter deadEmitter : dead) {
+            removeEmitter(instanceId, deadEmitter);
         }
 
         // Clean up dead emitters

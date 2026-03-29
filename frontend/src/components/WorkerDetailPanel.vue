@@ -21,14 +21,34 @@
             <n-form-item label="角色">
               <n-input v-model:value="form.role" placeholder="如：开发助手、客服" />
             </n-form-item>
-            <n-form-item label="Gateway 地址">
+            <n-form-item label="运行模式">
+              <n-switch v-model:value="form.localRuntime">
+                <template #checked>本地 Agent</template>
+                <template #unchecked>OpenClaw Worker</template>
+              </n-switch>
+              <div style="font-size: 12px; color: #888; margin-top: 4px">
+                {{ form.localRuntime ? '在进程内运行，可聊天' : '连接远程 Gateway' }}
+              </div>
+            </n-form-item>
+            <n-form-item v-if="form.localRuntime" label="选择模型" required>
+              <n-select
+                v-model:value="form.modelId"
+                :options="modelOptions"
+                placeholder="请选择模型"
+                filterable
+              />
+            </n-form-item>
+            <n-form-item v-if="!form.localRuntime" label="Gateway 地址">
               <n-input v-model:value="form.gatewayUrl" placeholder="http://127.0.0.1:18789" />
             </n-form-item>
-            <n-form-item label="密钥">
+            <n-form-item v-if="!form.localRuntime" label="密钥">
               <n-input v-model:value="form.gatewayToken" type="password" placeholder="Token" />
             </n-form-item>
             <n-form-item label="人格描述">
               <n-input v-model:value="form.personality" type="textarea" placeholder="描述员工的人格特点..." :rows="4" />
+            </n-form-item>
+            <n-form-item v-if="form.localRuntime" label="系统提示">
+              <n-input v-model:value="form.systemPrompt" type="textarea" placeholder="自定义系统提示词..." :rows="3" />
             </n-form-item>
             <n-form-item label="头像 URL">
               <n-input v-model:value="form.avatar" placeholder="https://example.com/avatar.png" />
@@ -65,10 +85,11 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
-import { NTabs, NTabPane, NForm, NFormItem, NInput, NSelect, NButton, NEmpty, NSpin, useMessage } from 'naive-ui'
+import { ref, watch, computed, onMounted } from 'vue'
+import { NTabs, NTabPane, NForm, NFormItem, NInput, NSelect, NSwitch, NButton, NEmpty, NSpin, useMessage } from 'naive-ui'
 import { workerApi } from '../api/workerApi.js'
 import { skillApi } from '../api/skillApi.js'
+import { llmModelApi } from '../api/index.js'
 
 const props = defineProps({
   worker: { type: Object, default: null },
@@ -82,6 +103,8 @@ const message = useMessage()
 const saving = ref(false)
 const allSkills = ref([])
 const selectedSkillIds = ref([])
+const allModels = ref([])
+const modelOptions = ref([])
 
 const form = ref({
   name: '',
@@ -91,7 +114,10 @@ const form = ref({
   gatewayToken: '',
   personality: '',
   avatar: '',
-  status: 'OFFLINE'
+  status: 'OFFLINE',
+  localRuntime: false,
+  modelId: null,
+  systemPrompt: ''
 })
 
 const statusOptions = [
@@ -110,13 +136,22 @@ watch(() => props.worker, (w) => {
       gatewayToken: w.gatewayToken || '',
       personality: w.personality || '',
       avatar: w.avatar || '',
-      status: w.status || 'OFFLINE'
+      status: w.status || 'OFFLINE',
+      localRuntime: w.localRuntime || false,
+      modelId: w.model?.id || null,
+      systemPrompt: w.systemPrompt || ''
     }
     selectedSkillIds.value = w.skills?.map(s => s.id) || []
   } else {
     resetForm()
   }
 }, { immediate: true })
+
+watch(() => form.value.localRuntime, async (isLocal) => {
+  if (isLocal) {
+    await loadModels()
+  }
+})
 
 function resetForm() {
   form.value = {
@@ -127,7 +162,10 @@ function resetForm() {
     gatewayToken: '',
     personality: '',
     avatar: '',
-    status: 'OFFLINE'
+    status: 'OFFLINE',
+    localRuntime: false,
+    modelId: null,
+    systemPrompt: ''
   }
   selectedSkillIds.value = []
 }
@@ -150,9 +188,26 @@ async function handleSave() {
     message.warning('请输入姓名')
     return
   }
+  if (form.value.localRuntime && !form.value.modelId) {
+    message.warning('本地 Agent 必须选择模型')
+    return
+  }
   saving.value = true
   try {
-    const data = { ...form.value, skillIds: selectedSkillIds.value }
+    const data = {
+      name: form.value.name,
+      nickname: form.value.nickname,
+      role: form.value.role,
+      gatewayUrl: form.value.gatewayUrl,
+      gatewayToken: form.value.gatewayToken,
+      personality: form.value.personality,
+      avatar: form.value.avatar,
+      status: form.value.status,
+      localRuntime: form.value.localRuntime,
+      modelId: form.value.localRuntime ? form.value.modelId : null,
+      systemPrompt: form.value.systemPrompt,
+      skillIds: selectedSkillIds.value
+    }
     if (props.worker?.id) {
       await workerApi.update(props.worker.id, data)
     } else {
@@ -190,7 +245,22 @@ async function loadSkills() {
   }
 }
 
-loadSkills()
+async function loadModels() {
+  try {
+    allModels.value = await llmModelApi.listEnabled()
+    modelOptions.value = allModels.value.map(m => ({
+      label: `${m.name} (${m.provider}/${m.model})`,
+      value: m.id
+    }))
+  } catch (e) {
+    console.error('Load models error:', e)
+  }
+}
+
+onMounted(() => {
+  loadSkills()
+  loadModels()
+})
 </script>
 
 <style scoped>

@@ -1,19 +1,35 @@
 <template>
   <div class="monitor-view">
     <div class="sidebar">
-      <div class="sidebar-title">Gateway 实例</div>
+      <div class="sidebar-title">
+        Gateway 实例
+        <n-button size="tiny" @click="showAddModal = true">➕</n-button>
+      </div>
       <div v-if="instances.length === 0" class="empty">
         <n-empty description="暂无实例" size="small" />
       </div>
       <div
-        v-for="inst in instances"
+        v-for="inst in instancesWithStatus"
         :key="inst.id"
         class="instance-item"
         :class="{ selected: selectedId === inst.id }"
-        @click="selectInstance(inst.id)"
+        @click="selectInstance(inst)"
       >
-        <div class="instance-name">{{ inst.name }}</div>
-        <div class="instance-url">{{ inst.url }}</div>
+        <div class="instance-info">
+          <div class="instance-name">{{ inst.name }}</div>
+          <div class="instance-url">{{ inst.url }}</div>
+        </div>
+        <div class="instance-actions">
+          <n-tag :type="inst.online ? 'success' : 'warning'" size="small">
+            {{ inst.online ? '在线' : '离线' }}
+          </n-tag>
+          <n-popconfirm @positive-click="deleteInstance(inst.id)">
+            <template #trigger>
+              <n-button size="tiny" type="error">🗑</n-button>
+            </template>
+            确定删除 "{{ inst.name }}"？
+          </n-popconfirm>
+        </div>
       </div>
     </div>
 
@@ -38,36 +54,81 @@
       </div>
 
       <!-- 连接状态提示 -->
-      <div v-if="error" class="connection-error">
-        <span>{{ error }}</span>
+      <div v-if="connectionError" class="connection-error">
+        <span>{{ connectionError }}</span>
         <n-button size="tiny" @click="handleReconnect">重连</n-button>
       </div>
     </div>
+
+    <!-- 添加实例弹窗 -->
+    <n-modal v-model:show="showAddModal" preset="card" title="添加实例" style="width: 400px">
+      <n-form :model="newInstance" label-placement="top">
+        <n-form-item label="名称" required>
+          <n-input v-model:value="newInstance.name" placeholder="实例名称" />
+        </n-form-item>
+        <n-form-item label="URL" required>
+          <n-input v-model:value="newInstance.url" placeholder="http://localhost:8080" />
+        </n-form-item>
+        <n-form-item label="Token">
+          <n-input v-model:value="newInstance.token" type="password" placeholder="认证Token" />
+        </n-form-item>
+        <n-form-item label="描述">
+          <n-input v-model:value="newInstance.description" type="textarea" placeholder="描述" />
+        </n-form-item>
+      </n-form>
+      <template #footer>
+        <n-button @click="showAddModal = false">取消</n-button>
+        <n-button type="primary" @click="addInstance" :loading="saving">添加</n-button>
+      </template>
+    </n-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { NEmpty, NButton } from 'naive-ui'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { NEmpty, NButton, NTag, NPopconfirm, NModal, NForm, NFormItem, NInput, useMessage } from 'naive-ui'
 import OverviewPanel from '../components/OverviewPanel.vue'
 import SessionListPanel from '../components/SessionListPanel.vue'
 import AgentListPanel from '../components/AgentListPanel.vue'
 import ActivityPanel from '../components/ActivityPanel.vue'
 import { instanceApi, connectSse as createSse } from '../api/index.js'
 
+const message = useMessage()
 const instances = ref([])
+const instanceStatuses = ref({})  // 存储每个实例的在线状态
 const selectedId = ref(null)
+const selectedInstance = ref(null)
 const statusData = ref(null)
 const error = ref(null)
+const connectionError = ref(null)
 const loading = ref(false)
+const showAddModal = ref(false)
+const saving = ref(false)
+
+const newInstance = ref({
+  name: '',
+  url: '',
+  token: '',
+  description: ''
+})
 
 let eventSource = null
+
+// 计算每个实例的在线状态
+const instancesWithStatus = computed(() => {
+  return instances.value.map(inst => ({
+    ...inst,
+    online: instanceStatuses.value[inst.id] || false
+  }))
+})
 
 async function loadInstances() {
   loading.value = true
   try {
     const data = await instanceApi.list()
     instances.value = Array.isArray(data) ? data : (data.result?.details || [])
+    // 检查每个实例的状态
+    instances.value.forEach(inst => checkInstanceStatus(inst.id))
   } catch (e) {
     console.error('Load instances error:', e)
   } finally {
@@ -75,11 +136,22 @@ async function loadInstances() {
   }
 }
 
-function selectInstance(id) {
-  if (selectedId.value === id) return
-  selectedId.value = id
+async function checkInstanceStatus(id) {
+  try {
+    const status = await instanceApi.getStatus(id)
+    instanceStatuses.value[id] = status.ok === true
+  } catch (e) {
+    instanceStatuses.value[id] = false
+  }
+}
+
+function selectInstance(inst) {
+  if (selectedId.value === inst.id) return
+  selectedId.value = inst.id
+  selectedInstance.value = inst
   statusData.value = null
-  openSse(id)
+  connectionError.value = null
+  openSse(inst.id)
 }
 
 function openSse(instanceId) {
@@ -91,22 +163,62 @@ function openSse(instanceId) {
     eventSource = null
   }
 
+  connectionError.value = null
+
   eventSource = createSse(
     instanceId,
     (data) => {
       statusData.value = data
-      error.value = null
+      connectionError.value = null
+      // 更新在线状态
+      instanceStatuses.value[instanceId] = true
+      console.log('[MonitorView] SSE data received:', JSON.stringify(data, null, 2))
     },
     (e) => {
-      error.value = '连接中断'
+      connectionError.value = '连接中断'
+      instanceStatuses.value[instanceId] = false
     }
   )
 }
 
 function handleReconnect() {
-  error.value = null
+  connectionError.value = null
   if (selectedId.value) {
     openSse(selectedId.value)
+  }
+}
+
+async function addInstance() {
+  if (!newInstance.value.name || !newInstance.value.url) {
+    message.warning('请填写名称和URL')
+    return
+  }
+  saving.value = true
+  try {
+    await instanceApi.create(newInstance.value)
+    message.success('添加成功')
+    showAddModal.value = false
+    newInstance.value = { name: '', url: '', token: '', description: '' }
+    await loadInstances()
+  } catch (e) {
+    message.error('添加失败: ' + (e.response?.data?.message || e.message))
+  } finally {
+    saving.value = false
+  }
+}
+
+async function deleteInstance(id) {
+  try {
+    await instanceApi.delete(id)
+    message.success('删除成功')
+    if (selectedId.value === id) {
+      selectedId.value = null
+      selectedInstance.value = null
+      statusData.value = null
+    }
+    await loadInstances()
+  } catch (e) {
+    message.error('删除失败: ' + (e.response?.data?.message || e.message))
   }
 }
 
@@ -132,7 +244,7 @@ onUnmounted(() => {
 }
 
 .sidebar {
-  width: 240px;
+  width: 280px;
   background: #fff;
   border-radius: 8px;
   padding: 16px;
@@ -146,6 +258,9 @@ onUnmounted(() => {
   font-size: 14px;
   margin-bottom: 12px;
   color: #1e1e2e;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .instance-item {
@@ -155,6 +270,9 @@ onUnmounted(() => {
   margin-bottom: 6px;
   border: 2px solid transparent;
   transition: all 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .instance-item:hover {
@@ -164,6 +282,11 @@ onUnmounted(() => {
 .instance-item.selected {
   background: #eef2ff;
   border-color: #6366f1;
+}
+
+.instance-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .instance-name {
@@ -180,6 +303,12 @@ onUnmounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.instance-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
 }
 
 .main-content {

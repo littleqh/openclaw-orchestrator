@@ -68,7 +68,7 @@ const handleLogin = async () => {
     localStorage.setItem('token', response.token)
     localStorage.setItem('username', response.username)
     message.success('登录成功')
-    router.push('/dashboard')
+    router.push('/monitor')
   } catch (error) {
     errorMessage.value = error.response?.data?.message || '登录失败'
   } finally {

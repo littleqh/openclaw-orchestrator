@@ -27,11 +27,6 @@ watch(() => route.path, (newPath) => {
 
 const menuOptions = [
   {
-    label: 'Dashboard',
-    key: '/dashboard',
-    icon: () => h('span', '📊')
-  },
-  {
     label: '实例管理',
     key: '/instances',
     icon: () => h('span', '🖥️')
@@ -70,6 +65,16 @@ const menuOptions = [
     label: '令牌管理',
     key: '/token-management',
     icon: () => h('span', '🔑')
+  },
+  {
+    label: '模型管理',
+    key: '/models',
+    icon: () => h('span', '🤖')
+  },
+  {
+    label: 'AI 聊天',
+    key: '/chat',
+    icon: () => h('span', '💬')
   }
 ]
 

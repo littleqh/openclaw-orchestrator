@@ -87,8 +87,12 @@ public class MonitorService {
         boolean wasOffline = isInstanceOffline(instanceId);
 
         // 调用 Gateway API
+        JsonNode statusResponse = gatewayService.getStatus(instance);
         JsonNode sessionsResponse = gatewayService.getSessions(instance);
         JsonNode subagentsResponse = gatewayService.getSubagents(instance);
+
+        // 解析 statusText
+        String statusText = parseStatusText(statusResponse);
 
         // 解析 sessions
         List<SessionInfo> sessions = parseSessions(sessionsResponse);
@@ -124,6 +128,7 @@ public class MonitorService {
                 .timestamp(LocalDateTime.now())
                 .instanceId(instanceId)
                 .instance(instanceInfo)
+                .statusText(statusText)
                 .sessions(sessions)
                 .agents(agents)
                 .activities(new ArrayList<>(activities))
@@ -168,6 +173,22 @@ public class MonitorService {
             log.error("解析 sessions 失败: {}", e.getMessage());
         }
         return result;
+    }
+
+    private String parseStatusText(JsonNode response) {
+        try {
+            log.info("[MonitorService] session_status raw response: {}", response);
+            if (response == null || !response.has("ok") || !response.get("ok").asBoolean()) {
+                return null;
+            }
+            JsonNode details = response.path("result").path("details");
+            String statusText = details.path("statusText").asText(null);
+            log.info("[MonitorService] statusText extracted: {}", statusText);
+            return statusText;
+        } catch (Exception e) {
+            log.error("解析 statusText 失败: {}", e.getMessage());
+            return null;
+        }
     }
 
     private List<AgentInfo> parseAgents(JsonNode response) {
@@ -280,6 +301,7 @@ public class MonitorService {
                 .timestamp(LocalDateTime.now())
                 .instanceId(instanceId)
                 .instance(instanceInfo)
+                .statusText(null)
                 .sessions(Collections.emptyList())
                 .agents(Collections.emptyList())
                 .activities(new ArrayList<>(activityCache.getOrDefault(instanceId, Collections.emptyList())))

@@ -13,6 +13,7 @@ public class StatusData {
     private LocalDateTime timestamp;
     private Long instanceId;
     private InstanceInfo instance;
+    private String statusText;    // 详细状态文本，如 "🦞 使用模型: xxx"
     private List<SessionInfo> sessions;
     private List<AgentInfo> agents;
     private List<ActivityEvent> activities;
