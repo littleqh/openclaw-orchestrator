@@ -36,6 +36,15 @@ public class Worker {
     @Column(name = "gateway_token", length = 500)
     private String gatewayToken;
 
+    @Column(name = "device_id", length = 100)
+    private String deviceId;
+
+    @Column(name = "device_public_key", length = 500)
+    private String devicePublicKey;
+
+    @Column(name = "device_private_key", length = 2000)
+    private String devicePrivateKey;
+
     @Column(length = 2000)
     private String personality;
 

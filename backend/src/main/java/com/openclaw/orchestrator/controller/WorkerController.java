@@ -1,7 +1,9 @@
 package com.openclaw.orchestrator.controller;
 
+import com.openclaw.orchestrator.dto.GatewayConnectResult;
 import com.openclaw.orchestrator.dto.WorkerRequest;
 import com.openclaw.orchestrator.entity.Worker;
+import com.openclaw.orchestrator.service.GatewayConnectService;
 import com.openclaw.orchestrator.service.WorkerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import java.util.List;
 public class WorkerController {
 
     private final WorkerService workerService;
+    private final GatewayConnectService gatewayConnectService;
 
     @GetMapping
     public ResponseEntity<List<Worker>> list() {
@@ -42,5 +45,11 @@ public class WorkerController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         workerService.deleteWorker(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/connect")
+    public ResponseEntity<GatewayConnectResult> connect(@PathVariable Long id) {
+        GatewayConnectResult result = gatewayConnectService.connect(id);
+        return ResponseEntity.ok(result);
     }
 }

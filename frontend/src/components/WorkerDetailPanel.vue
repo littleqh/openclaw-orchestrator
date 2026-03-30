@@ -59,6 +59,66 @@
           </n-form>
         </n-tab-pane>
 
+        <n-tab-pane v-if="!form.localRuntime" name="connection" tab="连接管理">
+          <div class="connection-panel">
+            <div class="connection-status">
+              <n-tag :type="connectStatusType" size="medium">
+                {{ connectStatusText }}
+              </n-tag>
+            </div>
+
+            <div class="connection-logs" v-if="connectLogs.length > 0">
+              <div class="logs-title">连接日志:</div>
+              <div class="logs-list">
+                <div v-for="(log, index) in connectLogs" :key="index" class="log-item">
+                  {{ log }}
+                </div>
+              </div>
+            </div>
+
+            <div class="connection-actions">
+              <n-button
+                v-if="connectStatus !== 'connecting'"
+                type="primary"
+                @click="handleConnect"
+                :loading="connecting"
+                :disabled="!form.gatewayUrl"
+              >
+                {{ connectStatus === 'connected' ? '重新连接' : '连接' }}
+              </n-button>
+              <n-button
+                v-if="connectStatus === 'connecting'"
+                type="warning"
+                @click="handleCancelConnect"
+              >
+                取消
+              </n-button>
+              <n-button
+                v-if="connectStatus === 'connected'"
+                type="default"
+                @click="handleDisconnect"
+              >
+                断开
+              </n-button>
+            </div>
+
+            <div v-if="connectError" class="connection-error">
+              <n-alert type="error" :title="connectError" />
+            </div>
+
+            <div v-if="connectStatus === 'pairing_required'" class="pairing-hint">
+              <n-alert type="warning" title="需要配对">
+                <template #icon>
+                  <span>⚠️</span>
+                </template>
+                <div>
+                  设备未配对，请到 OpenClaw Gateway 管理界面手动配对该设备。
+                </div>
+              </n-alert>
+            </div>
+          </div>
+        </n-tab-pane>
+
         <n-tab-pane name="skills" tab="常用技能">
           <div class="skills-grid">
             <div
@@ -86,7 +146,7 @@
 
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue'
-import { NTabs, NTabPane, NForm, NFormItem, NInput, NSelect, NSwitch, NButton, NEmpty, NSpin, useMessage } from 'naive-ui'
+import { NTabs, NTabPane, NForm, NFormItem, NInput, NSelect, NSwitch, NButton, NEmpty, NSpin, NTag, NAlert, useMessage } from 'naive-ui'
 import { workerApi } from '../api/workerApi.js'
 import { skillApi } from '../api/skillApi.js'
 import { llmModelApi } from '../api/index.js'
@@ -105,6 +165,13 @@ const allSkills = ref([])
 const selectedSkillIds = ref([])
 const allModels = ref([])
 const modelOptions = ref([])
+
+// Connection state
+const connecting = ref(false)
+const connectStatus = ref('disconnected')  // disconnected, connecting, connected, pairing_required, error
+const connectLogs = ref([])
+const connectError = ref('')
+let connectCancelToken = null
 
 const form = ref({
   name: '',
@@ -152,6 +219,66 @@ watch(() => form.value.localRuntime, async (isLocal) => {
     await loadModels()
   }
 })
+
+// Connection handlers
+const connectStatusType = computed(() => {
+  switch (connectStatus.value) {
+    case 'connected': return 'success'
+    case 'connecting': return 'warning'
+    case 'pairing_required': return 'warning'
+    case 'error': return 'error'
+    default: return 'default'
+  }
+})
+
+const connectStatusText = computed(() => {
+  switch (connectStatus.value) {
+    case 'connected': return '已连接'
+    case 'connecting': return '连接中...'
+    case 'pairing_required': return '需要配对'
+    case 'error': return '连接失败'
+    default: return '未连接'
+  }
+})
+
+async function handleConnect() {
+  if (!props.worker?.id) return
+  connecting.value = true
+  connectStatus.value = 'connecting'
+  connectLogs.value = []
+  connectError.value = ''
+
+  try {
+    const result = await workerApi.connect(props.worker.id)
+    connectLogs.value = result.logs || []
+    connectStatus.value = result.status
+    if (result.status === 'error' || result.status === 'pairing_required') {
+      connectError.value = result.message
+    }
+    if (result.status === 'connected') {
+      message.success('连接成功')
+    }
+  } catch (e) {
+    connectStatus.value = 'error'
+    connectError.value = e.response?.data?.message || e.message || '连接失败'
+    connectLogs.value.push('连接失败: ' + connectError.value)
+    message.error('连接失败')
+  } finally {
+    connecting.value = false
+  }
+}
+
+function handleDisconnect() {
+  connectStatus.value = 'disconnected'
+  connectLogs.value = []
+  message.info('已断开连接')
+}
+
+function handleCancelConnect() {
+  // For now, just reset status - actual cancellation would need abort support
+  connectStatus.value = 'disconnected'
+  connectLogs.value.push('连接已取消')
+}
 
 function resetForm() {
   form.value = {
@@ -331,5 +458,50 @@ onMounted(() => {
   border-top: 1px solid #f0f0f0;
   display: flex;
   justify-content: space-between;
+}
+.connection-panel {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.connection-logs {
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.logs-title {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+.logs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.log-item {
+  font-size: 12px;
+  font-family: monospace;
+  color: #333;
+  padding: 2px 0;
+}
+.connection-actions {
+  display: flex;
+  gap: 8px;
+}
+.connection-error {
+  margin-top: 8px;
+}
+.pairing-hint {
+  margin-top: 8px;
 }
 </style>

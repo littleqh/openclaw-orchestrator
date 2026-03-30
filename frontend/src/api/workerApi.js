@@ -5,5 +5,6 @@ export const workerApi = {
   get: (id) => api.get(`/workers/${id}`).then(r => r.data),
   create: (data) => api.post('/workers', data).then(r => r.data),
   update: (id, data) => api.put(`/workers/${id}`, data).then(r => r.data),
-  delete: (id) => api.delete(`/workers/${id}`)
+  delete: (id) => api.delete(`/workers/${id}`),
+  connect: (id) => api.post(`/workers/${id}/connect`).then(r => r.data)
 }
