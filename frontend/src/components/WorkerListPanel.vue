@@ -31,6 +31,10 @@
       </div>
       <n-empty v-if="filteredWorkers.length === 0 && !loading" description="暂无员工" />
     </div>
+    <div class="action-bar" v-if="selectedId">
+      <n-button type="error" size="small" @click="$emit('delete')">删除</n-button>
+      <n-button type="primary" size="small" @click="$emit('save')">保存</n-button>
+    </div>
   </div>
 </template>
 
@@ -92,6 +96,7 @@ function statusText(status) {
   flex: 1;
   overflow-y: auto;
   padding: 8px;
+  min-height: 0;
 }
 .worker-item {
   display: flex;
@@ -150,5 +155,15 @@ function statusText(status) {
 }
 .status-tag {
   flex-shrink: 0;
+}
+.action-bar {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid #f0f0f0;
+  flex-shrink: 0;
+}
+.action-bar .n-button {
+  flex: 1;
 }
 </style>

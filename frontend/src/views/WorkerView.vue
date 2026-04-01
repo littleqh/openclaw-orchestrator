@@ -6,10 +6,14 @@
         :selected-id="selectedId"
         @select="handleSelect"
         @add="handleAdd"
+        @delete="handleDeleteWorker"
+        @save="handleSaveWorker"
       />
     </div>
     <div class="main-content">
       <WorkerDetailPanel
+        ref="detailRef"
+        :key="selectedId"
         :worker="selectedWorker"
         :loading="detailLoading"
         :is-adding="selectedId === null"
@@ -29,6 +33,7 @@ import { workerApi } from '../api/workerApi.js'
 const workers = ref([])
 const selectedId = ref(null)
 const detailLoading = ref(false)
+const detailRef = ref(null)
 
 const selectedWorker = computed(() => {
   if (!selectedId.value) return null
@@ -53,7 +58,6 @@ function handleAdd() {
 
 async function handleSaved() {
   await loadWorkers()
-  // Keep selection if still exists
   if (selectedId.value) {
     const w = workers.value.find(w => w.id === selectedId.value)
     if (!w) {
@@ -67,6 +71,14 @@ async function handleDeleted() {
   selectedId.value = null
 }
 
+function handleDeleteWorker() {
+  detailRef.value?.handleDelete()
+}
+
+function handleSaveWorker() {
+  detailRef.value?.handleSave()
+}
+
 import { onMounted } from 'vue'
 onMounted(() => {
   loadWorkers()
@@ -76,7 +88,7 @@ onMounted(() => {
 <style scoped>
 .worker-view {
   display: flex;
-  height: calc(100vh - 120px);
+  height: 100vh;
   background: #f3f4f6;
   gap: 16px;
   padding: 16px;
@@ -89,6 +101,8 @@ onMounted(() => {
   border: 1px solid #e5e7eb;
   overflow: hidden;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .main-content {

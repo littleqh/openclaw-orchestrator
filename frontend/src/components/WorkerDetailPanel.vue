@@ -59,63 +59,19 @@
           </n-form>
         </n-tab-pane>
 
-        <n-tab-pane v-if="!form.localRuntime" name="connection" tab="连接管理">
-          <div class="connection-panel">
-            <div class="connection-status">
-              <n-tag :type="connectStatusType" size="medium">
-                {{ connectStatusText }}
-              </n-tag>
-            </div>
+        <n-tab-pane v-if="!form.localRuntime" name="monitor" tab="状态监控">
+          <StatusMonitorPanel
+            :workerId="worker?.id"
+            :gatewayUrl="form.gatewayUrl"
+          />
+        </n-tab-pane>
 
-            <div class="connection-logs" v-if="connectLogs.length > 0">
-              <div class="logs-title">连接日志:</div>
-              <div class="logs-list">
-                <div v-for="(log, index) in connectLogs" :key="index" class="log-item">
-                  {{ log }}
-                </div>
-              </div>
-            </div>
-
-            <div class="connection-actions">
-              <n-button
-                v-if="connectStatus !== 'connecting'"
-                type="primary"
-                @click="handleConnect"
-                :loading="connecting"
-                :disabled="!form.gatewayUrl"
-              >
-                {{ connectStatus === 'connected' ? '重新连接' : '连接' }}
-              </n-button>
-              <n-button
-                v-if="connectStatus === 'connecting'"
-                type="warning"
-                @click="handleCancelConnect"
-              >
-                取消
-              </n-button>
-              <n-button
-                v-if="connectStatus === 'connected'"
-                type="default"
-                @click="handleDisconnect"
-              >
-                断开
-              </n-button>
-            </div>
-
-            <div v-if="connectError" class="connection-error">
-              <n-alert type="error" :title="connectError" />
-            </div>
-
-            <div v-if="connectStatus === 'pairing_required'" class="pairing-hint">
-              <n-alert type="warning" title="需要配对">
-                <template #icon>
-                  <span>⚠️</span>
-                </template>
-                <div>
-                  设备未配对，请到 OpenClaw Gateway 管理界面手动配对该设备。
-                </div>
-              </n-alert>
-            </div>
+        <n-tab-pane v-if="!form.localRuntime" name="test" tab="测试">
+          <div class="test-panel">
+            <n-button type="primary" @click="showTestDialog = true" :disabled="!worker?.id">
+              发送测试消息
+            </n-button>
+            <p class="test-hint">点击按钮向该数字员工发送测试消息</p>
           </div>
         </n-tab-pane>
 
@@ -136,20 +92,46 @@
         </n-tab-pane>
       </n-tabs>
 
-      <div class="action-bar">
-        <n-button type="error" @click="handleDelete" :loading="saving">删除</n-button>
-        <n-button type="primary" @click="handleSave" :loading="saving">保存</n-button>
-      </div>
+      <!-- 测试对话框 -->
+      <n-modal v-model:show="showTestDialog" preset="card" title="发送测试消息" style="width: 500px;">
+        <n-form-item label="Session">
+          <n-select
+            v-model:value="testSessionKey"
+            :options="sessionOptions"
+            placeholder="选择或输入 Session"
+            filterable
+            allow-input
+          />
+        </n-form-item>
+        <n-form-item label="消息内容">
+          <n-input
+            v-model:value="testMessage"
+            type="textarea"
+            placeholder="输入要执行的任务..."
+            :rows="4"
+          />
+        </n-form-item>
+        <template #footer>
+          <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <n-button @click="showTestDialog = false">取消</n-button>
+            <n-button type="primary" @click="handleSendTest" :loading="sendingTest" :disabled="!testMessage.trim()">
+              发送
+            </n-button>
+          </div>
+        </template>
+      </n-modal>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue'
-import { NTabs, NTabPane, NForm, NFormItem, NInput, NSelect, NSwitch, NButton, NEmpty, NSpin, NTag, NAlert, useMessage } from 'naive-ui'
+import { NTabs, NTabPane, NForm, NFormItem, NInput, NSelect, NSwitch, NButton, NEmpty, NSpin, NTag, NAlert, NModal, NCard, useMessage, useDialog } from 'naive-ui'
 import { workerApi } from '../api/workerApi.js'
 import { skillApi } from '../api/skillApi.js'
 import { llmModelApi } from '../api/index.js'
+import { createGatewayApi } from '../api/gatewayApi.js'
+import StatusMonitorPanel from './StatusMonitorPanel.vue'
 
 const props = defineProps({
   worker: { type: Object, default: null },
@@ -159,19 +141,28 @@ const props = defineProps({
 
 const emit = defineEmits(['saved', 'deleted'])
 
+defineExpose({
+  handleSave,
+  handleDelete
+})
+
 const message = useMessage()
-const saving = ref(false)
+const dialog = useDialog()
+const saving = ref(false)  // kept for potential future use
 const allSkills = ref([])
 const selectedSkillIds = ref([])
 const allModels = ref([])
 const modelOptions = ref([])
 
-// Connection state
-const connecting = ref(false)
-const connectStatus = ref('disconnected')  // disconnected, connecting, connected, pairing_required, error
-const connectLogs = ref([])
-const connectError = ref('')
-let connectCancelToken = null
+// 测试对话框相关
+const showTestDialog = ref(false)
+const testMessage = ref('')
+const testSessionKey = ref('agent:main:main')
+const sendingTest = ref(false)
+const sessionOptions = ref([
+  { label: 'agent:main:main', value: 'agent:main:main' },
+  { label: 'agent:main:feishu:direct:*', value: 'agent:main:feishu:direct:ou_efaa3cd689b87d6f7fcf1940b0a6488e' }
+])
 
 const form = ref({
   name: '',
@@ -219,66 +210,6 @@ watch(() => form.value.localRuntime, async (isLocal) => {
     await loadModels()
   }
 })
-
-// Connection handlers
-const connectStatusType = computed(() => {
-  switch (connectStatus.value) {
-    case 'connected': return 'success'
-    case 'connecting': return 'warning'
-    case 'pairing_required': return 'warning'
-    case 'error': return 'error'
-    default: return 'default'
-  }
-})
-
-const connectStatusText = computed(() => {
-  switch (connectStatus.value) {
-    case 'connected': return '已连接'
-    case 'connecting': return '连接中...'
-    case 'pairing_required': return '需要配对'
-    case 'error': return '连接失败'
-    default: return '未连接'
-  }
-})
-
-async function handleConnect() {
-  if (!props.worker?.id) return
-  connecting.value = true
-  connectStatus.value = 'connecting'
-  connectLogs.value = []
-  connectError.value = ''
-
-  try {
-    const result = await workerApi.connect(props.worker.id)
-    connectLogs.value = result.logs || []
-    connectStatus.value = result.status
-    if (result.status === 'error' || result.status === 'pairing_required') {
-      connectError.value = result.message
-    }
-    if (result.status === 'connected') {
-      message.success('连接成功')
-    }
-  } catch (e) {
-    connectStatus.value = 'error'
-    connectError.value = e.response?.data?.message || e.message || '连接失败'
-    connectLogs.value.push('连接失败: ' + connectError.value)
-    message.error('连接失败')
-  } finally {
-    connecting.value = false
-  }
-}
-
-function handleDisconnect() {
-  connectStatus.value = 'disconnected'
-  connectLogs.value = []
-  message.info('已断开连接')
-}
-
-function handleCancelConnect() {
-  // For now, just reset status - actual cancellation would need abort support
-  connectStatus.value = 'disconnected'
-  connectLogs.value.push('连接已取消')
-}
 
 function resetForm() {
   form.value = {
@@ -384,6 +315,35 @@ async function loadModels() {
   }
 }
 
+async function handleSendTest() {
+  if (!testMessage.value.trim()) {
+    message.warning('请输入消息内容')
+    return
+  }
+  if (!testSessionKey.value) {
+    message.warning('请选择 Session')
+    return
+  }
+  sendingTest.value = true
+  try {
+    const gateway = createGatewayApi(props.worker.id)
+    const result = await gateway.sessionsSend(testSessionKey.value, testMessage.value)
+    console.log('[Test] Send result:', result)
+    if (result.ok) {
+      message.success('消息已发送')
+      showTestDialog.value = false
+      testMessage.value = ''
+    } else {
+      message.error('发送失败: ' + (result.error?.message || '未知错误'))
+    }
+  } catch (e) {
+    console.error('[Test] Send error:', e)
+    message.error('发送失败: ' + e.message)
+  } finally {
+    sendingTest.value = false
+  }
+}
+
 onMounted(() => {
   loadSkills()
   loadModels()
@@ -453,55 +413,16 @@ onMounted(() => {
   color: #6366f1;
   font-weight: bold;
 }
-.action-bar {
-  padding: 16px;
-  border-top: 1px solid #f0f0f0;
-  display: flex;
-  justify-content: space-between;
-}
-.connection-panel {
-  padding: 16px;
+.test-panel {
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-.connection-status {
-  display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
 }
-.connection-logs {
-  background: #f5f5f5;
-  border-radius: 8px;
-  padding: 12px;
-  max-height: 200px;
-  overflow-y: auto;
-}
-.logs-title {
+.test-hint {
   font-size: 12px;
-  color: #666;
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-.logs-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.log-item {
-  font-size: 12px;
-  font-family: monospace;
-  color: #333;
-  padding: 2px 0;
-}
-.connection-actions {
-  display: flex;
-  gap: 8px;
-}
-.connection-error {
-  margin-top: 8px;
-}
-.pairing-hint {
-  margin-top: 8px;
+  color: #888;
+  margin: 0;
 }
 </style>

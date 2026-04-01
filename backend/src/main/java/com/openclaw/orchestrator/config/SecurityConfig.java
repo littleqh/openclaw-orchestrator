@@ -34,7 +34,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> {})  // Enable CORS with default configuration
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))  // Use explicit CORS config
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
@@ -42,6 +42,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 // SSE endpoints - public for real-time monitoring
                 .requestMatchers("/api/sse/**").permitAll()
+                // Worker Gateway SSE endpoints - authenticated via cookie/session
+                .requestMatchers("/api/workers/*/gateway/**").permitAll()
+                .requestMatchers("/api/workers/*/gateway/logs.tail/**").permitAll()  // Explicit pattern for SSE
                 // WebSocket endpoints - token validated in handler
                 .requestMatchers("/ws/**").permitAll()
                 // Agent endpoints - AgentTokenFilter handles auth
